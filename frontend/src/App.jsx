@@ -7,7 +7,9 @@ import MisionVision from './components/MisionVision'
 import Footer from './components/Footer'
 import Login from './pages/Login'
 import Registro from './pages/Registro'
-
+import Admin from './pages/Admin'
+import RutaProtegida from './components/RutaProtegida'
+import OlvideContrasena from './pages/OlvideContrasena'
 function Inicio() {
   return (
     <>
@@ -29,6 +31,15 @@ function App() {
             <Route path="/" element={<Inicio />} />
             <Route path="/login" element={<Login />} />
             <Route path="/registro" element={<Registro />} />
+            <Route path="/olvide-password" element={<OlvideContrasena />} />
+            <Route
+              path="/admin"
+              element={
+                <RutaProtegida rolRequerido="Administrador">
+                  <Admin />
+                </RutaProtegida>
+              }
+            />
           </Routes>
         </main>
         <Footer />

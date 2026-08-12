@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import logoMuni from '../assets/logo-muni.png'
+import { apiFetch } from '../lib/api'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
+  const navigate = useNavigate()
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -14,21 +16,21 @@ export default function Login() {
     setCargando(true)
 
     try {
-      // Cuando el backend esté listo, esta URL apunta al endpoint real:
-      // POST http://localhost:5241/api/auth/login  { email, password }
-      // const res = await fetch('http://localhost:5241/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password }),
-      // })
-      // if (!res.ok) throw new Error('Credenciales inválidas')
-      // const data = await res.json()
-      // guardar data.token, redirigir según data.roles...
+      const data = await apiFetch('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      })
 
-      await new Promise((r) => setTimeout(r, 600)) // simulación temporal
-      console.log('Login simulado con', { email })
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('nombre', data.nombre)
+      localStorage.setItem('roles', JSON.stringify(data.roles))
+
+      if (data.roles.includes('Administrador')) navigate('/admin')
+      else if (data.roles.includes('Analista')) navigate('/analista')
+      else if (data.roles.includes('Empleado')) navigate('/empleado')
+      else navigate('/')
     } catch (err) {
-      setError('No se pudo iniciar sesión. Verifica tus credenciales.')
+      setError(err.message || 'No se pudo iniciar sesión. Verifica tus credenciales.')
     } finally {
       setCargando(false)
     }
@@ -95,6 +97,12 @@ export default function Login() {
               >
                 {cargando ? 'Ingresando...' : 'Ingresar'}
               </button>
+              <Link
+  to="/olvide-password"
+  className="block text-center text-sm text-[var(--color-azul-piedra)] hover:text-[var(--color-ocre)] transition-colors"
+>
+  ¿Olvidaste tu contraseña?
+</Link>
             </form>
 
             <p className="text-center text-sm text-[var(--color-azul-piedra)] mt-6">
