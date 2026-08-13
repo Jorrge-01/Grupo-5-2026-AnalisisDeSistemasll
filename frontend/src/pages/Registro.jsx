@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import logoMuni from '../assets/logo-muni.png'
+import { apiFetch } from '../lib/api'
 
 export default function Registro() {
   const [form, setForm] = useState({
@@ -18,6 +19,7 @@ export default function Registro() {
   })
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
+  const navigate = useNavigate()
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target
@@ -43,25 +45,24 @@ export default function Registro() {
 
     setCargando(true)
     try {
-      // Cuando el backend esté listo:
-      // POST http://localhost:5241/api/auth/registro-vecino
-      // const res = await fetch('http://localhost:5241/api/auth/registro-vecino', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     email: form.email,
-      //     password: form.password,
-      //     nombre: form.nombres,
-      //     apellido: form.apellidos,
-      //     cui: form.dpi,
-      //   }),
-      // })
-      // if (!res.ok) throw new Error('No se pudo completar el registro')
+      await apiFetch('/api/auth/registro-vecino', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+          nombre: form.nombres,
+          apellido: form.apellidos,
+          cui: form.dpi,
+          direccion: form.direccion,
+          aldea: form.aldea,
+          telefono: form.telefono,
+          fechaNacimiento: form.fechaNacimiento,
+        }),
+      })
 
-      await new Promise((r) => setTimeout(r, 600)) // simulación temporal
-      console.log('Registro simulado con', form)
+      navigate('/login')
     } catch (err) {
-      setError('No se pudo completar el registro. Intenta de nuevo.')
+      setError(err.message || 'No se pudo completar el registro. Intenta de nuevo.')
     } finally {
       setCargando(false)
     }
@@ -71,19 +72,16 @@ export default function Registro() {
     'w-full px-4 py-2.5 rounded-md border border-[var(--color-azul-piedra)]/30 bg-white text-[var(--color-tinta)] placeholder:text-[var(--color-azul-piedra)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--color-ocre)] transition-shadow'
   const labelClass = 'block text-sm font-medium text-[var(--color-tinta)] mb-1.5'
 
-// Placeholder: reemplaza por el listado real de aldeas/comunidades del municipio.
-// Este catálogo, en el backend, debería administrarlo el rol Administrador (igual que Áreas),
-// así se agrega/edita sin tocar código.
-const aldeas = [
-  'Casco urbano',
-  'Aldea El Progreso',
-  'Aldea San José',
-  'Aldea Buena Vista',
-  'Aldea La Esperanza',
-  'Caserío Los Pinos',
-  'Otra',
-]
-
+  // Placeholder: reemplaza por el listado real de aldeas/comunidades del municipio.
+  const aldeas = [
+    'Casco urbano',
+    'Aldea El Progreso',
+    'Aldea San José',
+    'Aldea Buena Vista',
+    'Aldea La Esperanza',
+    'Caserío Los Pinos',
+    'Otra',
+  ]
 
   return (
     <div className="min-h-[calc(100vh-73px)] flex items-center justify-center bg-[var(--color-piedra)] px-6 py-16">
@@ -134,24 +132,24 @@ const aldeas = [
                 </div>
               </div>
 
-       <div className="grid sm:grid-cols-2 gap-5">
-  <div>
-    <label htmlFor="direccion" className={labelClass}>Dirección</label>
-    <input id="direccion" name="direccion" type="text" required
-      value={form.direccion} onChange={handleChange}
-      placeholder="Zona, colonia, calle..." className={inputClass} />
-  </div>
-  <div>
-    <label htmlFor="aldea" className={labelClass}>Aldea o comunidad</label>
-    <select id="aldea" name="aldea" required
-      value={form.aldea} onChange={handleChange} className={inputClass}>
-      <option value="" disabled>Selecciona una opción</option>
-      {aldeas.map((a) => (
-        <option key={a} value={a}>{a}</option>
-      ))}
-    </select>
-  </div>
-</div>
+              <div className="grid sm:grid-cols-2 gap-5">
+                <div>
+                  <label htmlFor="direccion" className={labelClass}>Dirección</label>
+                  <input id="direccion" name="direccion" type="text" required
+                    value={form.direccion} onChange={handleChange}
+                    placeholder="Zona, colonia, calle..." className={inputClass} />
+                </div>
+                <div>
+                  <label htmlFor="aldea" className={labelClass}>Aldea o comunidad</label>
+                  <select id="aldea" name="aldea" required
+                    value={form.aldea} onChange={handleChange} className={inputClass}>
+                    <option value="" disabled>Selecciona una opción</option>
+                    {aldeas.map((a) => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
               <div className="grid sm:grid-cols-2 gap-5">
                 <div>

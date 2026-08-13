@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SistemaMuniAtiende.Api.DTOs;
+using SistemaMuniAtiende.DTOs;
+using SistemaMuniAtiende.Services;
 
-using SistemaMuniAtiende.Api.Services;
 
 namespace SistemaMuniAtiende.Api.Controllers
 {
@@ -16,12 +16,14 @@ namespace SistemaMuniAtiende.Api.Controllers
         {
             _authService = authService;
         }
-
         [HttpPost("registro-vecino")]
         public async Task<IActionResult> RegistroVecino(RegistroVecinoRequest req)
         {
             var resultado = await _authService.RegistrarUsuarioAsync(
-                new RegistroUsuarioRequest(req.Email, req.Password, req.Nombre, req.Apellido, "Vecino", req.Cui, null, null));
+                new RegistroUsuarioRequest(
+                    req.Email, req.Password, req.Nombre, req.Apellido, "Vecino",
+                    req.Cui, req.Direccion, req.Aldea, req.Telefono, req.FechaNacimiento,
+                    null, null));
 
             if (!resultado.exito) return BadRequest(new { mensaje = resultado.mensaje });
             return Ok(new { mensaje = resultado.mensaje });

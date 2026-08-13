@@ -1,32 +1,40 @@
-﻿namespace SistemaMuniAtiende.Api.DTOs
+﻿namespace SistemaMuniAtiende.DTOs
 {
     public record RegistroVecinoRequest(
         string Email,
         string Password,
         string Nombre,
         string Apellido,
-        string Cui
+        string Cui,
+        string Direccion,
+        string Aldea,
+        string Telefono,
+        DateTime FechaNacimiento
     );
 
-    public record RegistroUsuarioRequest(
-    string Email,
-    string Password,
-    string Nombre,
-    string Apellido,
-    string Rol,       // "Vecino", "Analista", "Empleado" o "Administrador"
-    string? Cui,       // requerido si Rol es Vecino
-    int? AreaId,       // requerido si Rol es Analista o Empleado
-    string? Cargo       // opcional, solo aplica a Analista o Empleado
-);
-
     public record CrearAreaRequest(
-      string Nombre,
-      bool AplicaQueja,
-      bool AplicaReclamo,
-      bool AplicaDenuncia,
-      bool AplicaSugerencia,
-      bool EsGeolocalizable
-  );
+       string Nombre,
+       bool AplicaQueja,
+       bool AplicaReclamo,
+       bool AplicaDenuncia,
+       bool AplicaSugerencia,
+       bool EsGeolocalizable
+   );
+
+    public record RegistroUsuarioRequest(
+        string Email,
+        string Password,
+        string Nombre,
+        string Apellido,
+        string Rol,
+        string? Cui,
+        string? Direccion,
+        string? Aldea,
+        string? Telefono,
+        DateTime? FechaNacimiento,
+        int? AreaId,
+        string? Cargo
+    );
 
     public record LoginRequest(string Email, string Password);
 

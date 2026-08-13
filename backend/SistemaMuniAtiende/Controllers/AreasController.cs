@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaMuniAtiende.Api.Data;
-using SistemaMuniAtiende.Api.DTOs;
+using SistemaMuniAtiende.DTOs;
 
 using SistemaMuniAtiende.Models;
 
