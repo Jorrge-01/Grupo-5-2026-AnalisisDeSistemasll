@@ -41,6 +41,12 @@
     public record LoginResponse(
         string Token,
         string Nombre,
-        IList<string> Roles
+        IList<string> Roles,
+        bool RequiereCambioPassword
+    );
+
+    public record RecuperarPasswordRequest(
+    string Email,
+    string Cui
     );
 }

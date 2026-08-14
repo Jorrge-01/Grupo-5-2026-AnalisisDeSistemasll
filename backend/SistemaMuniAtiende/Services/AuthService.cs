@@ -178,10 +178,161 @@ namespace SistemaMuniAtiende.Services
             if (!passwordValida) return null;
 
             var roles = await _userManager.GetRolesAsync(user);
+
+            if(user.DebeCambiarPassword)
+            {
+                return new LoginResponse(
+                    string.Empty,
+                    user.Nombre,
+                    roles,
+                    true
+                );
+            }
+
             var token = GenerarToken(user, roles);
 
-            return new LoginResponse(token, user.Nombre, roles);
+            return new LoginResponse(token, user.Nombre, roles, false);
         }
+
+        public async Task<(bool exito, string mensaje)> RecuperarPasswordAsync(string email, string cui)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+
+            if (user == null || !user.Activo)
+                return (false, "No se pudo procesar la solicitud.");
+
+            var perfilVecino = await _context.PerfilesVecino
+                .FirstOrDefaultAsync(p => p.UserId == user.Id && p.Cui == cui);
+
+            if (perfilVecino == null)
+                return (false, "No se pudo procesar la solicitud.");
+
+            var passwordTemporal = GenerarPasswordTemporal();
+
+            var removeResult = await _userManager.RemovePasswordAsync(user);
+
+            if (!removeResult.Succeeded)
+                return (false, "No se pudo generar la contraseña temporal.");
+
+            var addResult = await _userManager.AddPasswordAsync(user, passwordTemporal);
+
+            if (!addResult.Succeeded)
+                return (
+                    false,
+                    string.Join(" | ", addResult.Errors.Select(e => e.Description))
+                    
+                );
+
+            user.DebeCambiarPassword = true;
+
+            await _userManager.UpdateAsync(user);
+
+            await _emailService.EnviarAsync(
+                user.Email!,
+                "Recuperación de contraseña - Sistema QRDS",
+                $"""
+        <!DOCTYPE html>
+        <html lang="es">
+        <body style="margin:0; padding:0; background-color:#EEF1F5; font-family:'Segoe UI', Arial, sans-serif;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#EEF1F5; padding:32px 0;">
+            <tr>
+              <td align="center">
+                <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background-color:#F8FAFC; border-radius:10px; overflow:hidden;">
+
+                  <tr>
+                    <td style="background-color:#0F172A; padding:28px 32px;" align="center">
+                      <div style="width:48px; height:48px; border-radius:50%; background-color:#0D9488; display:inline-block; line-height:48px; text-align:center; color:#F8FAFC; font-size:20px; font-weight:600;">
+                        M
+                      </div>
+                      <p style="margin:12px 0 0; color:#F8FAFC; font-size:15px; letter-spacing:0.5px; text-transform:uppercase;">
+                        Municipalidad
+                      </p>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="height:6px; background-color:#0D9488;"></td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding:36px 32px;">
+                      <h1 style="margin:0 0 16px; color:#0F172A; font-size:22px;">
+                        Recuperación de contraseña
+                      </h1>
+
+                      <p style="margin:0 0 16px; color:#334155; font-size:15px; line-height:1.6;">
+                        Hola <strong>{user.Nombre}</strong>, hemos recibido una solicitud
+                        para recuperar el acceso a tu cuenta.
+                      </p>
+
+                      <p style="margin:0 0 24px; color:#334155; font-size:15px; line-height:1.6;">
+                        Se ha generado una contraseña temporal para que puedas ingresar
+                        nuevamente al Portal Municipal.
+                      </p>
+
+                      <table role="presentation" cellpadding="0" cellspacing="0"
+                             style="background-color:#EEF1F5; border-radius:8px; width:100%; margin-bottom:24px;">
+                        <tr>
+                          <td style="padding:16px 20px;">
+                            <p style="margin:0; color:#475569; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;">
+                              Contraseña temporal
+                            </p>
+                            <p style="margin:8px 0 0; color:#0F172A; font-size:20px; font-weight:700; letter-spacing:1px;">
+                              {passwordTemporal}
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p style="margin:0 0 16px; color:#334155; font-size:15px; line-height:1.6;">
+                        Utiliza esta contraseña para iniciar sesión en el Portal Municipal.
+                      </p>
+
+                      <p style="margin:0; color:#334155; font-size:15px; line-height:1.6;">
+                        <strong>Por seguridad, al ingresar deberás cambiar esta contraseña
+                        por una nueva.</strong>
+                      </p>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding:20px 32px; background-color:#0F172A;" align="center">
+                      <p style="margin:0; color:#94A3B8; font-size:12px;">
+                        Este es un correo automático, por favor no respondas a este mensaje.
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+        """);
+
+            return (
+                true,
+                "Se ha enviado una contraseña temporal al correo registrado."
+                
+            );
+        }
+
+
+
+        private string GenerarPasswordTemporal()
+        {
+            const string caracteres = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+
+            var random = new Random();
+
+            return new string(
+                Enumerable.Range(0, 10)
+                    .Select(_ => caracteres[random.Next(caracteres.Length)])
+                    .ToArray()
+            );
+        }
+
 
         private string GenerarToken(ApplicationUser user, IList<string> roles)
         {

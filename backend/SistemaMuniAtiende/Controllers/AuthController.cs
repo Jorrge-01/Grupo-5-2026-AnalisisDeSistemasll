@@ -45,5 +45,18 @@ namespace SistemaMuniAtiende.Api.Controllers
             if (resultado == null) return Unauthorized(new { mensaje = "Credenciales inválidas." });
             return Ok(resultado);
         }
+
+        [HttpPost("olvide-password")]
+        public async Task<IActionResult> OlvidePassword(RecuperarPasswordRequest req)
+        {
+            var resultado = await _authService.RecuperarPasswordAsync(
+                req.Email,
+                req.Cui);
+
+            if (!resultado.exito)
+                return BadRequest(new { mensaje = resultado.mensaje });
+
+            return Ok(new { mensaje = resultado.mensaje });
+        }
     }
 }

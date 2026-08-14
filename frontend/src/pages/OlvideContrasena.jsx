@@ -21,13 +21,9 @@ export default function OlvideContrasena() {
 
     setCargando(true)
     try {
-      // Endpoint pendiente en el backend: POST /api/auth/olvide-password
-      // Debe validar que el email y el DPI correspondan al mismo vecino,
-      // generar un token de recuperación de un solo uso con expiración corta,
-      // y enviar el correo con el enlace para restablecer la contraseña.
       await apiFetch('/api/auth/olvide-password', {
         method: 'POST',
-        body: JSON.stringify({ email, dpi }),
+        body: JSON.stringify({ email, cui: dpi }),
       })
 
       setEnviado(true)
@@ -62,8 +58,11 @@ export default function OlvideContrasena() {
             {enviado ? (
               <div className="text-center space-y-4">
                 <div className="bg-green-50 border border-green-200 text-green-800 rounded-md px-4 py-3 text-sm">
-                  Si los datos coinciden con una cuenta registrada, enviamos un correo con
-                  instrucciones para restablecer tu contraseña.
+                  Si los datos coinciden con una cuenta registrada, enviamos un correo con una
+                  contraseña temporal para ingresar al Portal Municipal.
+                  <br />
+                  <br />
+                  Por seguridad, al ingresar deberás cambiar tu contraseña.
                 </div>
                 <Link
                   to="/login"
