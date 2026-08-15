@@ -20,6 +20,11 @@ export default function Login() {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       })
+if (data.requiereCambioPassword) {
+
+        navigate('/cambiar-password', { state: { email } })
+        return
+      }
 
       localStorage.setItem('token', data.token)
       localStorage.setItem('nombre', data.nombre)
@@ -28,6 +33,7 @@ export default function Login() {
       if (data.roles.includes('Administrador')) navigate('/admin')
       else if (data.roles.includes('Analista')) navigate('/analista')
       else if (data.roles.includes('Empleado')) navigate('/empleado')
+      else if (data.roles.includes('Vecino')) navigate('/vecino')
       else navigate('/')
     } catch (err) {
       setError(err.message || 'No se pudo iniciar sesión. Verifica tus credenciales.')
@@ -97,13 +103,14 @@ export default function Login() {
               >
                 {cargando ? 'Ingresando...' : 'Ingresar'}
               </button>
-              <Link
-  to="/olvide-password"
-  className="block text-center text-sm text-[var(--color-azul-piedra)] hover:text-[var(--color-ocre)] transition-colors"
->
-  ¿Olvidaste tu contraseña?
-</Link>
             </form>
+
+            <Link
+              to="/olvide-password"
+              className="block text-center text-sm text-[var(--color-azul-piedra)] hover:text-[var(--color-ocre)] transition-colors mt-2"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
 
             <p className="text-center text-sm text-[var(--color-azul-piedra)] mt-6">
               ¿Eres vecino y aún no tienes cuenta?{' '}

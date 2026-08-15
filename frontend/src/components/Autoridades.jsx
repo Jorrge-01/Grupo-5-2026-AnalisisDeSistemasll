@@ -1,10 +1,17 @@
+import alcalde from '../assets/alcalde.jpg'
+import sindico1 from '../assets/sindico1.jpg'
+import sindico2 from '../assets/sindico2.jpg'
+import concejal1 from '../assets/concejal1.jpg'
+import concejal2 from '../assets/concejal2.jpg'
+import secretario from '../assets/secretario.jpg'
+
 const autoridades = [
-  { cargo: "Alcalde Municipal", nombre: "Nombre del Alcalde" },
-  { cargo: "Síndico I", nombre: "Nombre del Síndico" },
-  { cargo: "Síndico II", nombre: "Nombre del Síndico" },
-  { cargo: "Concejal I", nombre: "Nombre del Concejal" },
-  { cargo: "Concejal II", nombre: "Nombre del Concejal" },
-  { cargo: "Secretario Municipal", nombre: "Nombre del Secretario" },
+  { cargo: "Alcalde Municipal", nombre: "Nombre del Alcalde", foto: alcalde },
+  { cargo: "Síndico I", nombre: "Nombre del Síndico", foto: sindico1 },
+  { cargo: "Síndico II", nombre: "Nombre del Síndico", foto: sindico2 },
+  { cargo: "Concejal I", nombre: "Nombre del Concejal", foto: concejal1 },
+  { cargo: "Concejal II", nombre: "Nombre del Concejal", foto: concejal2 },
+  { cargo: "Secretario Municipal", nombre: "Nombre del Secretario", foto: secretario },
 ]
 
 export default function Autoridades() {
@@ -25,7 +32,11 @@ export default function Autoridades() {
             key={a.cargo}
             className="rounded-lg border border-[var(--color-verde-institucional)]/12 bg-[var(--color-piedra)] p-6 hover:border-[var(--color-ocre)]/40 transition-colors"
           >
-            <div className="h-16 w-16 rounded-full bg-[var(--color-azul-piedra)]/15 mb-4" />
+            <img
+              src={a.foto}
+              alt={a.nombre}
+              className="h-16 w-16 rounded-full object-cover mb-4"
+            />
             <p className="font-display font-semibold text-lg text-[var(--color-verde-institucional)]">
               {a.nombre}
             </p>
