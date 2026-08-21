@@ -57,6 +57,12 @@ namespace SistemaMuniAtiende.Services
                 if (await _context.PerfilesVecino.AnyAsync(p => p.Cui == req.Cui))
                     return (false, "El CUI ya está registrado.");
 
+                if (req.Cui.Length != 13 || !req.Cui.All(char.IsDigit))
+                    return (false, "El CUI debe tener 13 dígitos numéricos.");
+
+                if (!req.Cui.EndsWith("0110"))
+                    return (false, "El CUI ingresado no corresponde a un vecino registrado en este municipio.");
+
                 _context.PerfilesVecino.Add(new PerfilVecino
                 {
                     UserId = user.Id,

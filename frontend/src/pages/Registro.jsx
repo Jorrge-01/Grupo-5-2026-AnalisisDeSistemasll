@@ -12,6 +12,7 @@ export default function Registro() {
     direccion: '',
     aldea: '',
     telefono: '',
+    codigoPais: '+502',
     email: '',
     password: '',
     confirmarPassword: '',
@@ -21,21 +22,78 @@ export default function Registro() {
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
+  // Fecha máxima permitida para nacimiento: hoy (formato YYYY-MM-DD, el que usa <input type="date">)
+  const hoy = new Date().toISOString().split('T')[0]
+
+  // Fecha límite para que el usuario ya sea mayor de edad (18 años cumplidos)
+  const fechaMaximaMayorEdad = (() => {
+    const fecha = new Date()
+    fecha.setFullYear(fecha.getFullYear() - 18)
+    return fecha.toISOString().split('T')[0]
+  })()
+
   function handleChange(e) {
     const { name, value, type, checked } = e.target
+
+    // Código de país: solo + y dígitos, máximo 4 caracteres (ej. +502)
+    if (name === 'codigoPais') {
+      const limpio = value.replace(/[^\d+]/g, '').slice(0, 4)
+      setForm((prev) => ({ ...prev, codigoPais: limpio }))
+      return
+    }
+
+    // Teléfono: solo dígitos, máximo 8 (formato guatemalteco 0000-0000 sin el guion)
+    if (name === 'telefono') {
+      const soloNumeros = value.replace(/\D/g, '').slice(0, 8)
+      setForm((prev) => ({ ...prev, telefono: soloNumeros }))
+      return
+    }
+
+    // DPI: solo dígitos, máximo 13
+    if (name === 'dpi') {
+      const soloNumeros = value.replace(/\D/g, '').slice(0, 13)
+      setForm((prev) => ({ ...prev, dpi: soloNumeros }))
+      return
+    }
+
     setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
+  }
+
+  function validarEmail(valor) {
+    // Formato básico: algo@algo.algo
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor)
   }
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
 
-    if (form.password !== form.confirmarPassword) {
-      setError('Las contraseñas no coinciden.')
+    if (!form.fechaNacimiento) {
+      setError('Debes indicar tu fecha de nacimiento.')
+      return
+    }
+    if (form.fechaNacimiento > fechaMaximaMayorEdad) {
+      setError('Debes ser mayor de edad para registrarte.')
       return
     }
     if (form.dpi.length !== 13) {
       setError('El DPI debe tener 13 dígitos.')
+      return
+    }
+    if (form.dpi.slice(-4) !== '0110') {
+      setError('El DPI ingresado no corresponde a un vecino registrado en este municipio.')
+      return
+    }
+    if (form.telefono.length < 8) {
+      setError('El teléfono debe tener 8 dígitos.')
+      return
+    }
+    if (!validarEmail(form.email)) {
+      setError('Ingresa un correo electrónico válido.')
+      return
+    }
+    if (form.password !== form.confirmarPassword) {
+      setError('Las contraseñas no coinciden.')
       return
     }
     if (!form.aceptaTerminos) {
@@ -55,7 +113,7 @@ export default function Registro() {
           cui: form.dpi,
           direccion: form.direccion,
           aldea: form.aldea,
-          telefono: form.telefono,
+          telefono: `${form.codigoPais}${form.telefono}`,
           fechaNacimiento: form.fechaNacimiento,
         }),
       })
@@ -69,7 +127,7 @@ export default function Registro() {
   }
 
   const inputClass =
-    'w-full px-4 py-2.5 rounded-md border border-[var(--color-azul-piedra)]/30 bg-white text-[var(--color-tinta)] placeholder:text-[var(--color-azul-piedra)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--color-ocre)] transition-shadow'
+    'px-4 py-2.5 rounded-md border border-[var(--color-azul-piedra)]/30 bg-white text-[var(--color-tinta)] placeholder:text-[var(--color-azul-piedra)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--color-ocre)] transition-shadow'
   const labelClass = 'block text-sm font-medium text-[var(--color-tinta)] mb-1.5'
 
   // Placeholder: reemplaza por el listado real de aldeas/comunidades del municipio.
@@ -106,13 +164,13 @@ export default function Registro() {
                   <label htmlFor="nombres" className={labelClass}>Nombres</label>
                   <input id="nombres" name="nombres" type="text" required
                     value={form.nombres} onChange={handleChange}
-                    placeholder="Ej. María José" className={inputClass} />
+                    placeholder="Ej. María José" className={`${inputClass} w-full`} />
                 </div>
                 <div>
                   <label htmlFor="apellidos" className={labelClass}>Apellidos</label>
                   <input id="apellidos" name="apellidos" type="text" required
                     value={form.apellidos} onChange={handleChange}
-                    placeholder="Ej. García López" className={inputClass} />
+                    placeholder="Ej. García López" className={`${inputClass} w-full`} />
                 </div>
               </div>
 
@@ -120,15 +178,17 @@ export default function Registro() {
                 <div>
                   <label htmlFor="fechaNacimiento" className={labelClass}>Fecha de nacimiento</label>
                   <input id="fechaNacimiento" name="fechaNacimiento" type="date" required
+                    max={fechaMaximaMayorEdad}
                     value={form.fechaNacimiento} onChange={handleChange}
-                    className={inputClass} />
+                    className={`${inputClass} w-full`} />
                 </div>
                 <div>
                   <label htmlFor="dpi" className={labelClass}>DPI (13 dígitos)</label>
                   <input id="dpi" name="dpi" type="text" required
+                    inputMode="numeric"
                     maxLength={13} pattern="[0-9]{13}"
                     value={form.dpi} onChange={handleChange}
-                    placeholder="0000000000000" className={inputClass} />
+                    placeholder="0000000000000" className={`${inputClass} w-full`} />
                 </div>
               </div>
 
@@ -137,12 +197,12 @@ export default function Registro() {
                   <label htmlFor="direccion" className={labelClass}>Dirección</label>
                   <input id="direccion" name="direccion" type="text" required
                     value={form.direccion} onChange={handleChange}
-                    placeholder="Zona, colonia, calle..." className={inputClass} />
+                    placeholder="Zona, colonia, calle..." className={`${inputClass} w-full`} />
                 </div>
                 <div>
                   <label htmlFor="aldea" className={labelClass}>Aldea o comunidad</label>
                   <select id="aldea" name="aldea" required
-                    value={form.aldea} onChange={handleChange} className={inputClass}>
+                    value={form.aldea} onChange={handleChange} className={`${inputClass} w-full`}>
                     <option value="" disabled>Selecciona una opción</option>
                     {aldeas.map((a) => (
                       <option key={a} value={a}>{a}</option>
@@ -154,15 +214,44 @@ export default function Registro() {
               <div className="grid sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="telefono" className={labelClass}>Teléfono</label>
-                  <input id="telefono" name="telefono" type="tel" required
-                    value={form.telefono} onChange={handleChange}
-                    placeholder="0000-0000" className={inputClass} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '12px' }}>
+                    <input
+                      id="codigoPais"
+                      name="codigoPais"
+                      type="text"
+                      value={form.codigoPais}
+                      onChange={handleChange}
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        padding: '10px 8px',
+                        textAlign: 'center',
+                        borderRadius: '6px',
+                        border: '1px solid #94A3B8',
+                        outline: 'none',
+                      }}
+                    />
+                    <input id="telefono" name="telefono" type="tel" required
+                      inputMode="numeric"
+                      maxLength={8}
+                      value={form.telefono} onChange={handleChange}
+                      placeholder="00000000"
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        padding: '10px 16px',
+                        borderRadius: '6px',
+                        border: '1px solid #94A3B8',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label htmlFor="email" className={labelClass}>Correo electrónico</label>
                   <input id="email" name="email" type="email" required
                     value={form.email} onChange={handleChange}
-                    placeholder="tucorreo@ejemplo.com" className={inputClass} />
+                    placeholder="tucorreo@ejemplo.com" className={`${inputClass} w-full`} />
                 </div>
               </div>
 
@@ -171,13 +260,13 @@ export default function Registro() {
                   <label htmlFor="password" className={labelClass}>Contraseña</label>
                   <input id="password" name="password" type="password" required
                     value={form.password} onChange={handleChange}
-                    placeholder="••••••••" className={inputClass} />
+                    placeholder="••••••••" className={`${inputClass} w-full`} />
                 </div>
                 <div>
                   <label htmlFor="confirmarPassword" className={labelClass}>Confirmar contraseña</label>
                   <input id="confirmarPassword" name="confirmarPassword" type="password" required
                     value={form.confirmarPassword} onChange={handleChange}
-                    placeholder="••••••••" className={inputClass} />
+                    placeholder="••••••••" className={`${inputClass} w-full`} />
                 </div>
               </div>
 
