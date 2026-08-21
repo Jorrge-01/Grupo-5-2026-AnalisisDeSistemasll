@@ -1,34 +1,49 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import logoMuni from '../assets/logo-muni.png'
 import { apiFetch } from '../lib/api'
+import PasswordChecklist, { passwordEsValida } from '../components/PasswordChecklist'
 
-export default function OlvideContrasena() {
-  const [email, setEmail] = useState('')
-  const [dpi, setDpi] = useState('')
+export default function CambiarPassword() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const emailPrellenado = location.state?.email || ''
+
+  const [email, setEmail] = useState(emailPrellenado)
+  const [passwordActual, setPasswordActual] = useState('')
+  const [passwordNueva, setPasswordNueva] = useState('')
+  const [confirmarPasswordNueva, setConfirmarPasswordNueva] = useState('')
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
-  const [enviado, setEnviado] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
 
-    if (dpi.length !== 13) {
-      setError('El DPI debe tener 13 dígitos.')
+    if (!passwordEsValida(passwordNueva)) {
+      setError('La nueva contraseña no cumple con los requisitos de seguridad.')
+      return
+    }
+    if (passwordNueva !== confirmarPasswordNueva) {
+      setError('Las contraseñas no coinciden.')
       return
     }
 
     setCargando(true)
     try {
-      await apiFetch('/api/auth/olvide-password', {
+      await apiFetch('/api/auth/cambiar-password', {
         method: 'POST',
-        body: JSON.stringify({ email, cui: dpi }),
+        body: JSON.stringify({
+          email,
+          passwordActual,
+          passwordNueva,
+          confirmarPasswordNueva,
+        }),
       })
 
-      setEnviado(true)
+      navigate('/login')
     } catch (err) {
-      setError(err.message || 'No se pudo procesar la solicitud. Intenta de nuevo.')
+      setError(err.message || 'No se pudo cambiar la contraseña. Intenta de nuevo.')
     } finally {
       setCargando(false)
     }
@@ -48,83 +63,90 @@ export default function OlvideContrasena() {
             <div className="flex flex-col items-center mb-8">
               <img src={logoMuni} alt="Logo de la municipalidad" className="h-16 w-16 mb-4" />
               <h1 className="font-display text-2xl font-semibold text-[var(--color-verde-institucional)]">
-                Olvidé mi contraseña
+                Cambiar contraseña
               </h1>
               <p className="text-sm text-[var(--color-azul-piedra)] mt-1 text-center">
-                Verifica tu identidad para recuperar el acceso a tu cuenta
+                Por seguridad, debes establecer una nueva contraseña
               </p>
             </div>
 
-            {enviado ? (
-              <div className="text-center space-y-4">
-                <div className="bg-green-50 border border-green-200 text-green-800 rounded-md px-4 py-3 text-sm">
-                  Si los datos coinciden con una cuenta registrada, enviamos un correo con una
-                  contraseña temporal para ingresar al Portal Municipal.
-                  <br />
-                  <br />
-                  Por seguridad, al ingresar deberás cambiar tu contraseña.
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {!emailPrellenado && (
+                <div>
+                  <label htmlFor="email" className={labelClass}>Correo electrónico</label>
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="tucorreo@ejemplo.com"
+                    className={inputClass}
+                  />
                 </div>
-                <Link
-                  to="/login"
-                  className="inline-block text-sm text-[var(--color-ocre)] font-semibold hover:underline"
-                >
-                  Volver a iniciar sesión
-                </Link>
+              )}
+
+              <div>
+                <label htmlFor="passwordActual" className={labelClass}>Contraseña temporal</label>
+                <input
+                  id="passwordActual"
+                  type="password"
+                  required
+                  value={passwordActual}
+                  onChange={(e) => setPasswordActual(e.target.value)}
+                  placeholder="La que recibiste por correo"
+                  className={inputClass}
+                />
               </div>
-            ) : (
-              <>
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div>
-                    <label htmlFor="email" className={labelClass}>Correo electrónico</label>
-                    <input
-                      id="email"
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="tucorreo@ejemplo.com"
-                      className={inputClass}
-                    />
-                  </div>
 
-                  <div>
-                    <label htmlFor="dpi" className={labelClass}>DPI (13 dígitos)</label>
-                    <input
-                      id="dpi"
-                      type="text"
-                      required
-                      maxLength={13}
-                      pattern="[0-9]{13}"
-                      value={dpi}
-                      onChange={(e) => setDpi(e.target.value)}
-                      placeholder="0000000000000"
-                      className={inputClass}
-                    />
-                  </div>
+              <div>
+                <label htmlFor="passwordNueva" className={labelClass}>Nueva contraseña</label>
+                <input
+                  id="passwordNueva"
+                  type="password"
+                  required
+                  value={passwordNueva}
+                  onChange={(e) => setPasswordNueva(e.target.value)}
+                  placeholder="••••••••"
+                  className={inputClass}
+                />
+                <PasswordChecklist password={passwordNueva} />
+              </div>
 
-                  {error && (
-                    <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-                      {error}
-                    </p>
-                  )}
+              <div>
+                <label htmlFor="confirmarPasswordNueva" className={labelClass}>Confirmar nueva contraseña</label>
+                <input
+                  id="confirmarPasswordNueva"
+                  type="password"
+                  required
+                  value={confirmarPasswordNueva}
+                  onChange={(e) => setConfirmarPasswordNueva(e.target.value)}
+                  placeholder="••••••••"
+                  className={inputClass}
+                />
+              </div>
 
-                  <button
-                    type="submit"
-                    disabled={cargando}
-                    className="w-full py-2.5 rounded-md bg-[var(--color-ocre)] text-[var(--color-piedra-clara)] font-semibold hover:bg-[var(--color-ocre-claro)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {cargando ? 'Enviando...' : 'Enviar'}
-                  </button>
-                </form>
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                  {error}
+                </p>
+              )}
 
-                <Link
-                  to="/login"
-                  className="block text-center text-sm text-[var(--color-tinta)]/60 hover:text-[var(--color-tinta)] mt-6 transition-colors"
-                >
-                  ← Volver a iniciar sesión
-                </Link>
-              </>
-            )}
+              <button
+                type="submit"
+                disabled={cargando}
+                className="w-full py-2.5 rounded-md bg-[var(--color-ocre)] text-[var(--color-piedra-clara)] font-semibold hover:bg-[var(--color-ocre-claro)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {cargando ? 'Guardando...' : 'Cambiar contraseña'}
+              </button>
+            </form>
+
+            <Link
+              to="/login"
+              className="block text-center text-sm text-[var(--color-tinta)]/60 hover:text-[var(--color-tinta)] mt-6 transition-colors"
+            >
+              ← Volver a iniciar sesión
+            </Link>
           </div>
         </div>
       </div>

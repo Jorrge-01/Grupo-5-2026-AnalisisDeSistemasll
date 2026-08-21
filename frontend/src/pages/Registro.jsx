@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import logoMuni from '../assets/logo-muni.png'
 import { apiFetch } from '../lib/api'
+import PasswordChecklist, { passwordEsValida } from '../components/PasswordChecklist'
 
 export default function Registro() {
   const [form, setForm] = useState({
@@ -22,10 +23,8 @@ export default function Registro() {
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
-  // Fecha máxima permitida para nacimiento: hoy (formato YYYY-MM-DD, el que usa <input type="date">)
   const hoy = new Date().toISOString().split('T')[0]
 
-  // Fecha límite para que el usuario ya sea mayor de edad (18 años cumplidos)
   const fechaMaximaMayorEdad = (() => {
     const fecha = new Date()
     fecha.setFullYear(fecha.getFullYear() - 18)
@@ -35,21 +34,18 @@ export default function Registro() {
   function handleChange(e) {
     const { name, value, type, checked } = e.target
 
-    // Código de país: solo + y dígitos, máximo 4 caracteres (ej. +502)
     if (name === 'codigoPais') {
       const limpio = value.replace(/[^\d+]/g, '').slice(0, 4)
       setForm((prev) => ({ ...prev, codigoPais: limpio }))
       return
     }
 
-    // Teléfono: solo dígitos, máximo 8 (formato guatemalteco 0000-0000 sin el guion)
     if (name === 'telefono') {
       const soloNumeros = value.replace(/\D/g, '').slice(0, 8)
       setForm((prev) => ({ ...prev, telefono: soloNumeros }))
       return
     }
 
-    // DPI: solo dígitos, máximo 13
     if (name === 'dpi') {
       const soloNumeros = value.replace(/\D/g, '').slice(0, 13)
       setForm((prev) => ({ ...prev, dpi: soloNumeros }))
@@ -60,7 +56,6 @@ export default function Registro() {
   }
 
   function validarEmail(valor) {
-    // Formato básico: algo@algo.algo
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor)
   }
 
@@ -90,6 +85,10 @@ export default function Registro() {
     }
     if (!validarEmail(form.email)) {
       setError('Ingresa un correo electrónico válido.')
+      return
+    }
+    if (!passwordEsValida(form.password)) {
+      setError('La contraseña no cumple con los requisitos de seguridad.')
       return
     }
     if (form.password !== form.confirmarPassword) {
@@ -130,7 +129,6 @@ export default function Registro() {
     'px-4 py-2.5 rounded-md border border-[var(--color-azul-piedra)]/30 bg-white text-[var(--color-tinta)] placeholder:text-[var(--color-azul-piedra)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--color-ocre)] transition-shadow'
   const labelClass = 'block text-sm font-medium text-[var(--color-tinta)] mb-1.5'
 
-  // Placeholder: reemplaza por el listado real de aldeas/comunidades del municipio.
   const aldeas = [
     'Casco urbano',
     'Aldea El Progreso',
@@ -261,6 +259,7 @@ export default function Registro() {
                   <input id="password" name="password" type="password" required
                     value={form.password} onChange={handleChange}
                     placeholder="••••••••" className={`${inputClass} w-full`} />
+                  <PasswordChecklist password={form.password} />
                 </div>
                 <div>
                   <label htmlFor="confirmarPassword" className={labelClass}>Confirmar contraseña</label>

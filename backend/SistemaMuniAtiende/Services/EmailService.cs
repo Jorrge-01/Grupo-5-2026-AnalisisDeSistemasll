@@ -21,7 +21,7 @@ namespace SistemaMuniAtiende.Services
         public async Task EnviarAsync(string destinatario, string asunto, string cuerpoHtml)
         {
             var mensaje = new MimeMessage();
-            mensaje.From.Add(MailboxAddress.Parse(_config["Smtp:From"]));
+            mensaje.From.Add(new MailboxAddress("Municipalidad - Sistema QRDS", _config["Smtp:From"]));
             mensaje.To.Add(MailboxAddress.Parse(destinatario));
             mensaje.Subject = asunto;
             mensaje.Body = new TextPart("html") { Text = cuerpoHtml };

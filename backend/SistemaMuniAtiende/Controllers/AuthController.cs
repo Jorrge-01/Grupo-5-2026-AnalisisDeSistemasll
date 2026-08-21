@@ -58,5 +58,13 @@ namespace SistemaMuniAtiende.Api.Controllers
 
             return Ok(new { mensaje = resultado.mensaje });
         }
+
+        [HttpPost("cambiar-password")]
+        public async Task<IActionResult> CambiarPassword(CambiarPasswordRequest req)
+        {
+            var (exito, mensaje) = await _authService.CambiarPasswordAsync(req);
+            if (!exito) return BadRequest(new { mensaje });
+            return Ok(new { mensaje });
+        }
     }
 }

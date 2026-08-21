@@ -363,5 +363,27 @@ namespace SistemaMuniAtiende.Services
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+        public async Task<(bool exito, string mensaje)> CambiarPasswordAsync(CambiarPasswordRequest req)
+        {
+            if (req.PasswordNueva != req.ConfirmarPasswordNueva)
+                return (false, "Las contraseñas no coinciden.");
+
+            if (req.PasswordNueva == req.PasswordActual)
+                return (false, "La nueva contraseña debe ser diferente a la contraseña temporal.");
+
+            var user = await _userManager.FindByEmailAsync(req.Email);
+            if (user == null || !user.Activo)
+                return (false, "No se pudo procesar la solicitud.");
+
+            var result = await _userManager.ChangePasswordAsync(user, req.PasswordActual, req.PasswordNueva);
+            if (!result.Succeeded)
+                return (false, string.Join(" | ", result.Errors.Select(e => e.Description)));
+
+            user.DebeCambiarPassword = false;
+            await _userManager.UpdateAsync(user);
+
+            return (true, "Contraseña actualizada correctamente.");
+        }
     }
 }

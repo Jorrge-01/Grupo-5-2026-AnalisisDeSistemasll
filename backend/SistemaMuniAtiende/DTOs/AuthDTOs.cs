@@ -49,4 +49,11 @@
     string Email,
     string Cui
     );
+
+    public record CambiarPasswordRequest(
+    string Email,
+    string PasswordActual,
+    string PasswordNueva,
+    string ConfirmarPasswordNueva
+);
 }

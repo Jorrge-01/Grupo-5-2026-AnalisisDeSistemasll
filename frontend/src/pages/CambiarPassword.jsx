@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import logoMuni from '../assets/logo-muni.png'
+import { apiFetch } from '../lib/api'
 
 export default function CambiarPassword() {
   const location = useLocation()
@@ -25,14 +26,15 @@ export default function CambiarPassword() {
 
     setCargando(true)
     try {
-      // Endpoint pendiente en el backend: POST /api/auth/cambiar-password
-      // await apiFetch('/api/auth/cambiar-password', {
-      //   method: 'POST',
-      //   body: JSON.stringify({ email, passwordActual, passwordNueva, confirmarPasswordNueva }),
-      // })
-
-      await new Promise((r) => setTimeout(r, 600)) // simulación temporal
-      console.log('Cambio de contraseña simulado con', { email, passwordActual, passwordNueva })
+      await apiFetch('/api/auth/cambiar-password', {
+        method: 'POST',
+        body: JSON.stringify({
+          email,
+          passwordActual,
+          passwordNueva,
+          confirmarPasswordNueva,
+        }),
+      })
 
       navigate('/login')
     } catch (err) {
