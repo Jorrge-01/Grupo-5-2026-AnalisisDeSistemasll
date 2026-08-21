@@ -1,37 +1,9 @@
-import { useNavigate } from 'react-router-dom'
-import logoMuni from '../assets/logo-muni.png'
+import HeaderInterno from '../components/HeaderInterno'
 
 export default function Vecino() {
-  const navigate = useNavigate()
-  const nombre = localStorage.getItem('nombre') || 'Vecino'
-
-  function handleLogout() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('nombre')
-    localStorage.removeItem('roles')
-    navigate('/login')
-  }
-
   return (
     <div className="min-h-[calc(100vh-73px)] bg-[var(--color-piedra)]">
-      <header className="bg-[var(--color-verde-institucional)] text-[var(--color-piedra-clara)]">
-        <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={logoMuni} alt="Logo de la municipalidad" className="h-10 w-10" />
-            <div>
-              <p className="font-display text-lg font-semibold">Mi Portal</p>
-              <p className="text-sm text-[var(--color-piedra-clara)]/70">Bienvenido, {nombre}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 rounded-md border border-[var(--color-piedra-clara)]/30 text-sm font-medium hover:bg-[var(--color-piedra-clara)]/10 transition-colors"
-          >
-            Cerrar sesión
-          </button>
-        </div>
-      </header>
-      <div className="franja-textil" />
+      <HeaderInterno titulo="Mi Portal" />
 
       <main className="max-w-6xl mx-auto px-6 py-10">
         <div className="grid sm:grid-cols-2 gap-6">

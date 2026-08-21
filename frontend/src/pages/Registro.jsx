@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import logoMuni from '../assets/logo-muni.png'
 import { apiFetch } from '../lib/api'
@@ -128,16 +128,13 @@ export default function Registro() {
   const inputClass =
     'px-4 py-2.5 rounded-md border border-[var(--color-azul-piedra)]/30 bg-white text-[var(--color-tinta)] placeholder:text-[var(--color-azul-piedra)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--color-ocre)] transition-shadow'
   const labelClass = 'block text-sm font-medium text-[var(--color-tinta)] mb-1.5'
+  const [aldeas, setAldeas] = useState([])
 
-  const aldeas = [
-    'Casco urbano',
-    'Aldea El Progreso',
-    'Aldea San José',
-    'Aldea Buena Vista',
-    'Aldea La Esperanza',
-    'Caserío Los Pinos',
-    'Otra',
-  ]
+  useEffect(() => {
+    apiFetch('/api/aldeas')
+      .then(setAldeas)
+      .catch(() => setAldeas([]))
+  }, [])
 
   return (
     <div className="min-h-[calc(100vh-73px)] flex items-center justify-center bg-[var(--color-piedra)] px-6 py-16">
@@ -203,7 +200,7 @@ export default function Registro() {
                     value={form.aldea} onChange={handleChange} className={`${inputClass} w-full`}>
                     <option value="" disabled>Selecciona una opción</option>
                     {aldeas.map((a) => (
-                      <option key={a} value={a}>{a}</option>
+                      <option key={a.id} value={a.nombre}>{a.nombre}</option>
                     ))}
                   </select>
                 </div>

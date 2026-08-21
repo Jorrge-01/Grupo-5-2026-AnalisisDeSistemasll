@@ -12,6 +12,8 @@ import CambiarPassword from './pages/CambiarPassword'
 import Admin from './pages/Admin'
 import Vecino from './pages/Vecino'
 import RutaProtegida from './components/RutaProtegida'
+import GestionAldeas from './pages/GestionAldeas'
+
 
 function Inicio() {
   return (
@@ -70,6 +72,15 @@ function App() {
             element={
               <RutaProtegida rolRequerido="Vecino">
                 <Vecino />
+              </RutaProtegida>
+            }
+          />
+
+          <Route
+            path="/admin/aldeas"
+            element={
+              <RutaProtegida rolRequerido="Administrador">
+                <GestionAldeas />
               </RutaProtegida>
             }
           />

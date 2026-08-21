@@ -10,6 +10,7 @@ namespace SistemaMuniAtiende.Api.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<PerfilVecino> PerfilesVecino { get; set; }
+        public DbSet<Aldea> Aldeas { get; set; }
         public DbSet<PerfilEmpleado> PerfilesEmpleado { get; set; }
         public DbSet<Area> Areas { get; set; }
 
