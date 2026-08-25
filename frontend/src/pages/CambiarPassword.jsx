@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import logoMuni from '../assets/logo-muni.png'
 import { apiFetch } from '../lib/api'
+import { traducirError } from '../lib/traducirError'
+import PasswordChecklist, { passwordEsValida } from '../components/PasswordChecklist'
 
 export default function CambiarPassword() {
   const location = useLocation()
@@ -19,6 +21,14 @@ export default function CambiarPassword() {
     e.preventDefault()
     setError('')
 
+    if (!passwordActual) {
+      setError('Ingresa tu contraseña temporal.')
+      return
+    }
+    if (!passwordEsValida(passwordNueva)) {
+      setError('La nueva contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.')
+      return
+    }
     if (passwordNueva !== confirmarPasswordNueva) {
       setError('Las contraseñas no coinciden.')
       return
@@ -38,7 +48,7 @@ export default function CambiarPassword() {
 
       navigate('/login')
     } catch (err) {
-      setError(err.message || 'No se pudo cambiar la contraseña. Intenta de nuevo.')
+      setError(traducirError(err.message) || 'No se pudo cambiar la contraseña. Intenta de nuevo.')
     } finally {
       setCargando(false)
     }
@@ -65,7 +75,7 @@ export default function CambiarPassword() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
               {!emailPrellenado && (
                 <div>
                   <label htmlFor="email" className={labelClass}>Correo electrónico</label>
@@ -105,6 +115,7 @@ export default function CambiarPassword() {
                   placeholder="••••••••"
                   className={inputClass}
                 />
+                <PasswordChecklist password={passwordNueva} />
               </div>
 
               <div>
