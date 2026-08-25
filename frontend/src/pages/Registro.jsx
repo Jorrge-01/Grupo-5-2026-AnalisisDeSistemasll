@@ -244,7 +244,7 @@ export default function Registro() {
                 </div>
                 <div>
                   <label htmlFor="email" className={labelClass}>Correo electrónico</label>
-                  <input id="email" name="email" type="email" required
+                  <input id="email" name="email" type="text" required
                     value={form.email} onChange={handleChange}
                     placeholder="tucorreo@ejemplo.com" className={`${inputClass} w-full`} />
                 </div>
