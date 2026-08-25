@@ -16,10 +16,16 @@
        string Nombre,
        bool AplicaQueja,
        bool AplicaReclamo,
-       bool AplicaDenuncia,
-       bool AplicaSugerencia,
-       bool EsGeolocalizable
+       bool AplicaSugerencia
    );
+
+    public record ActualizarAreaRequest(
+        string Nombre,
+        bool AplicaQueja,
+        bool AplicaReclamo,
+        bool AplicaSugerencia,
+        bool Activo
+    );
 
     public record RegistroUsuarioRequest(
         string Email,

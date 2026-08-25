@@ -7,10 +7,12 @@ using SistemaMuniAtiende.Models;
 using SistemaMuniAtiende.Services;
 using System.Text;
 
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .AddInterceptors(sp.GetRequiredService<BitacoraInterceptor>()));
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -45,6 +47,8 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.Zero
     };
 });
+
+builder.Services.AddMemoryCache();
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<AuthService>();
@@ -87,6 +91,9 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod();
     });
 });
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<BitacoraInterceptor>();
 
 var app = builder.Build();
 

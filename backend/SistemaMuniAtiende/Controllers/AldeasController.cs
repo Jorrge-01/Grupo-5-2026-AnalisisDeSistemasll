@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using SistemaMuniAtiende.Api.Data;
 using SistemaMuniAtiende.DTOs;
 using SistemaMuniAtiende.Models;
@@ -12,20 +13,32 @@ namespace SistemaMuniAtiende.Controllers
     public class AldeasController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IMemoryCache _cache;
+        private const string CachePrefix = "aldeas_";
+        private static readonly TimeSpan Duracion = TimeSpan.FromMinutes(30);
 
-        public AldeasController(AppDbContext context)
+        public AldeasController(AppDbContext context, IMemoryCache cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         [HttpGet]
         public async Task<IActionResult> Listar([FromQuery] bool soloActivas = true)
         {
+            var cacheKey = $"{CachePrefix}{soloActivas}";
+
+            if (_cache.TryGetValue(cacheKey, out List<Aldea>? aldeasCache))
+                return Ok(aldeasCache);
+
             var query = _context.Aldeas.AsQueryable();
             if (soloActivas)
                 query = query.Where(a => a.Activo);
 
             var aldeas = await query.OrderBy(a => a.Nombre).ToListAsync();
+
+            _cache.Set(cacheKey, aldeas, Duracion);
+
             return Ok(aldeas);
         }
 
@@ -44,6 +57,8 @@ namespace SistemaMuniAtiende.Controllers
             _context.Aldeas.Add(aldea);
             await _context.SaveChangesAsync();
 
+            InvalidarCache();
+
             return Ok(aldea);
         }
 
@@ -58,6 +73,8 @@ namespace SistemaMuniAtiende.Controllers
             aldea.Activo = req.Activo;
             await _context.SaveChangesAsync();
 
+            InvalidarCache();
+
             return Ok(aldea);
         }
 
@@ -71,7 +88,15 @@ namespace SistemaMuniAtiende.Controllers
             _context.Aldeas.Remove(aldea);
             await _context.SaveChangesAsync();
 
+            InvalidarCache();
+
             return Ok(new { mensaje = "Aldea eliminada correctamente." });
+        }
+
+        private void InvalidarCache()
+        {
+            _cache.Remove($"{CachePrefix}True");
+            _cache.Remove($"{CachePrefix}False");
         }
     }
 }

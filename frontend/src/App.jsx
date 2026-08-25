@@ -13,7 +13,9 @@ import Admin from './pages/Admin'
 import Vecino from './pages/Vecino'
 import RutaProtegida from './components/RutaProtegida'
 import GestionAldeas from './pages/GestionAldeas'
-
+import GestionAreas from './pages/GestionAreas'
+import Reportes from './pages/Reportes'
+import ReporteBitacora from './pages/ReporteBitacora'
 
 function Inicio() {
   return (
@@ -84,7 +86,35 @@ function App() {
               </RutaProtegida>
             }
           />
+
+          <Route
+            path="/admin/areas"
+            element={
+              <RutaProtegida rolRequerido="Administrador">
+                <GestionAreas />
+              </RutaProtegida>
+            }
+          />
+          
+        <Route
+  path="/admin/reportes"
+  element={
+    <RutaProtegida rolRequerido="Administrador">
+      <Reportes />
+    </RutaProtegida>
+  }
+/>
+<Route
+  path="/admin/bitacora"
+  element={
+    <RutaProtegida rolRequerido="Administrador">
+      <ReporteBitacora />
+    </RutaProtegida>
+  }
+/>
         </Routes>
+
+
       </Layout>
     </BrowserRouter>
   )

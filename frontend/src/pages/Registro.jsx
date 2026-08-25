@@ -72,11 +72,11 @@ export default function Registro() {
       return
     }
     if (form.dpi.length !== 13) {
-      setError('El DPI debe tener 13 dígitos.')
+      setError('El CUI debe tener 13 dígitos.')
       return
     }
     if (form.dpi.slice(-4) !== '0110') {
-      setError('El DPI ingresado no corresponde a un vecino registrado en este municipio.')
+      setError('El CUI ingresado no corresponde a un vecino registrado en este municipio.')
       return
     }
     if (form.telefono.length < 8) {
@@ -178,7 +178,7 @@ export default function Registro() {
                     className={`${inputClass} w-full`} />
                 </div>
                 <div>
-                  <label htmlFor="dpi" className={labelClass}>DPI (13 dígitos)</label>
+                  <label htmlFor="dpi" className={labelClass}>CUI (13 dígitos)</label>
                   <input id="dpi" name="dpi" type="text" required
                     inputMode="numeric"
                     maxLength={13} pattern="[0-9]{13}"

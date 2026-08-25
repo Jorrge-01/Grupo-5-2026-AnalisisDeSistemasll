@@ -14,6 +14,8 @@ namespace SistemaMuniAtiende.Api.Data
         public DbSet<PerfilEmpleado> PerfilesEmpleado { get; set; }
         public DbSet<Area> Areas { get; set; }
 
+        public DbSet<Bitacora> Bitacoras { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

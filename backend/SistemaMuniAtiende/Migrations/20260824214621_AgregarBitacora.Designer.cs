@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SistemaMuniAtiende.Api.Data;
@@ -11,9 +12,11 @@ using SistemaMuniAtiende.Api.Data;
 namespace SistemaMuniAtiende.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260824214621_AgregarBitacora")]
+    partial class AgregarBitacora
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -266,6 +269,9 @@ namespace SistemaMuniAtiende.Migrations
                     b.Property<bool>("Activo")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("AplicaDenuncia")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("AplicaQueja")
                         .HasColumnType("boolean");
 
@@ -273,6 +279,9 @@ namespace SistemaMuniAtiende.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("AplicaSugerencia")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("EsGeolocalizable")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Nombre")

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SistemaMuniAtiende.Api.Data;
@@ -16,17 +17,20 @@ namespace SistemaMuniAtiende.Services
         private readonly AppDbContext _context;
         private readonly IConfiguration _config;
         private readonly IEmailService _emailService;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public AuthService(
             UserManager<ApplicationUser> userManager,
             AppDbContext context,
             IConfiguration config,
-            IEmailService emailService)
+            IEmailService emailService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _userManager = userManager;
             _context = context;
             _config = config;
             _emailService = emailService;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<(bool exito, string mensaje)> RegistrarUsuarioAsync(RegistroUsuarioRequest req)
@@ -177,27 +181,48 @@ namespace SistemaMuniAtiende.Services
 
         public async Task<LoginResponse?> LoginAsync(LoginRequest req)
         {
+            var ip = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString();
             var user = await _userManager.FindByEmailAsync(req.Email);
-            if (user == null || !user.Activo) return null;
+
+            if (user == null || !user.Activo)
+            {
+                await RegistrarBitacoraLogin(null, req.Email, "Fallido", ip, "Usuario no encontrado o inactivo");
+                return null;
+            }
 
             var passwordValida = await _userManager.CheckPasswordAsync(user, req.Password);
-            if (!passwordValida) return null;
+            if (!passwordValida)
+            {
+                await RegistrarBitacoraLogin(user.Id, req.Email, "Fallido", ip, "Contraseña incorrecta");
+                return null;
+            }
 
             var roles = await _userManager.GetRolesAsync(user);
 
-            if(user.DebeCambiarPassword)
+            if (user.DebeCambiarPassword)
             {
-                return new LoginResponse(
-                    string.Empty,
-                    user.Nombre,
-                    roles,
-                    true
-                );
+                await RegistrarBitacoraLogin(user.Id, req.Email, "RequiereCambioPassword", ip, "Login con contraseña temporal");
+                return new LoginResponse(string.Empty, user.Nombre, roles, true);
             }
 
-            var token = GenerarToken(user, roles);
+            await RegistrarBitacoraLogin(user.Id, req.Email, "Exitoso", ip, "Inicio de sesión exitoso");
 
+            var token = GenerarToken(user, roles);
             return new LoginResponse(token, user.Nombre, roles, false);
+        }
+
+        private async Task RegistrarBitacoraLogin(string? userId, string email, string resultado, string? ip, string descripcion)
+        {
+            _context.Bitacoras.Add(new Bitacora
+            {
+                UserId = userId,
+                Accion = "Login",
+                Entidad = "AspNetUsers",
+                EntidadId = userId ?? email,
+                Detalle = System.Text.Json.JsonSerializer.Serialize(new { email, resultado, descripcion }),
+                Ip = ip
+            });
+            await _context.SaveChangesAsync();
         }
 
         public async Task<(bool exito, string mensaje)> RecuperarPasswordAsync(string email, string cui)
@@ -226,7 +251,7 @@ namespace SistemaMuniAtiende.Services
                 return (
                     false,
                     string.Join(" | ", addResult.Errors.Select(e => e.Description))
-                    
+
                 );
 
             user.DebeCambiarPassword = true;
@@ -320,7 +345,7 @@ namespace SistemaMuniAtiende.Services
             return (
                 true,
                 "Se ha enviado una contraseña temporal al correo registrado."
-                
+
             );
         }
 
