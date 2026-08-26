@@ -158,12 +158,14 @@ export default function Registro() {
                 <div>
                   <label htmlFor="nombres" className={labelClass}>Nombres</label>
                   <input id="nombres" name="nombres" type="text" required
+                    maxLength={30}
                     value={form.nombres} onChange={handleChange}
                     placeholder="Ej. María José" className={`${inputClass} w-full`} />
                 </div>
                 <div>
                   <label htmlFor="apellidos" className={labelClass}>Apellidos</label>
                   <input id="apellidos" name="apellidos" type="text" required
+                    maxLength={30}
                     value={form.apellidos} onChange={handleChange}
                     placeholder="Ej. García López" className={`${inputClass} w-full`} />
                 </div>
@@ -191,6 +193,7 @@ export default function Registro() {
                 <div>
                   <label htmlFor="direccion" className={labelClass}>Dirección</label>
                   <input id="direccion" name="direccion" type="text" required
+                    maxLength={50}
                     value={form.direccion} onChange={handleChange}
                     placeholder="Zona, colonia, calle..." className={`${inputClass} w-full`} />
                 </div>
@@ -245,6 +248,7 @@ export default function Registro() {
                 <div>
                   <label htmlFor="email" className={labelClass}>Correo electrónico</label>
                   <input id="email" name="email" type="text" required
+                    maxLength={40}
                     value={form.email} onChange={handleChange}
                     placeholder="tucorreo@ejemplo.com" className={`${inputClass} w-full`} />
                 </div>
@@ -254,6 +258,7 @@ export default function Registro() {
                 <div>
                   <label htmlFor="password" className={labelClass}>Contraseña</label>
                   <input id="password" name="password" type="password" required
+                    maxLength={15}
                     value={form.password} onChange={handleChange}
                     placeholder="••••••••" className={`${inputClass} w-full`} />
                   <PasswordChecklist password={form.password} />
@@ -261,6 +266,7 @@ export default function Registro() {
                 <div>
                   <label htmlFor="confirmarPassword" className={labelClass}>Confirmar contraseña</label>
                   <input id="confirmarPassword" name="confirmarPassword" type="password" required
+                    maxLength={15}
                     value={form.confirmarPassword} onChange={handleChange}
                     placeholder="••••••••" className={`${inputClass} w-full`} />
                 </div>

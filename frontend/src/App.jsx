@@ -16,6 +16,7 @@ import GestionAldeas from './pages/GestionAldeas'
 import GestionAreas from './pages/GestionAreas'
 import Reportes from './pages/Reportes'
 import ReporteBitacora from './pages/ReporteBitacora'
+import ReporteUsuarios from './pages/ReporteUsuarios'
 
 function Inicio() {
   return (
@@ -111,6 +112,11 @@ function App() {
       <ReporteBitacora />
     </RutaProtegida>
   }
+/>
+
+<Route
+  path="/admin/reporte-usuarios"
+  element={<ReporteUsuarios />}
 />
         </Routes>
 
