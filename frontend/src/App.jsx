@@ -19,6 +19,7 @@ import CrearEmpleadoMunicipal from './pages/CrearEmpleadoMunicipal'
 import Reportes from './pages/Reportes'
 import ReporteBitacora from './pages/ReporteBitacora'
 import RutaProtegida from './components/RutaProtegida'
+import ReporteUsuarios from './pages/ReporteUsuarios'
 
 function Inicio() {
   return (
@@ -116,6 +117,14 @@ function App() {
                 </RutaProtegida>
               }
             />
+            <Route
+  path="/admin/reporte-usuarios"
+  element={
+    <RutaProtegida rolRequerido="Administrador">
+      <ReporteUsuarios />
+    </RutaProtegida>
+  }
+/>
           </Routes>
         </main>
         <Footer />

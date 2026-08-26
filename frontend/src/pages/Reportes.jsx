@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { ShieldCheck, ClipboardList, Clock } from 'lucide-react'
+import { ShieldCheck, ClipboardList, Clock, Users } from 'lucide-react'
 import HeaderInterno from '../components/HeaderInterno'
 
 export default function Reportes() {
@@ -32,6 +32,23 @@ export default function Reportes() {
               Consulta el historial completo de acciones registradas en el sistema.
             </p>
           </Link>
+
+          <Link
+          to="/admin/reporte-usuarios"
+          className="bg-[var(--color-piedra-clara)] rounded-lg border border-[var(--color-azul-piedra)]/15 p-6 hover:border-[var(--color-ocre)]/40 transition-colors"
+        >
+          <div className="h-11 w-11 rounded-lg bg-[var(--color-verde-institucional)]/10 flex items-center justify-center mb-4">
+            <Users className="h-5 w-5 text-[var(--color-verde-institucional)]" />
+          </div>
+
+          <p className="font-display text-lg font-semibold text-[var(--color-verde-institucional)] mb-1">
+            Usuarios registrados
+          </p>
+
+          <p className="text-sm text-[var(--color-tinta)]/70">
+            Consulta los usuarios registrados por rol, aldea y estado.
+          </p>
+        </Link>
 
           <div className="bg-[var(--color-piedra-clara)] rounded-lg border border-[var(--color-azul-piedra)]/15 p-6 opacity-60 cursor-not-allowed">
             <div className="h-11 w-11 rounded-lg bg-[var(--color-verde-institucional)]/10 flex items-center justify-center mb-4">
