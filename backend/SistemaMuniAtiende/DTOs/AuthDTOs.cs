@@ -1,16 +1,30 @@
 ﻿namespace SistemaMuniAtiende.DTOs
 {
+    public record RegistroUsuarioRequest(
+      string Email,
+      string? Password,
+      string Nombre,
+      string Apellido,
+      string Rol,
+      string? Cui,
+      string? Direccion,
+      string? Aldea,
+      string? Telefono,
+      DateTime? FechaNacimiento,
+      List<int>? AreaIds,
+      string? Cargo
+  );
     public record RegistroVecinoRequest(
-        string Email,
-        string Password,
-        string Nombre,
-        string Apellido,
-        string Cui,
-        string Direccion,
-        string Aldea,
-        string Telefono,
-        DateTime FechaNacimiento
-    );
+    string Email,
+    string Password,
+    string Nombre,
+    string Apellido,
+    string Cui,
+    string Direccion,
+    string Aldea,
+    string Telefono,
+    DateTime FechaNacimiento
+);
 
     public record CrearAreaRequest(
        string Nombre,
@@ -27,20 +41,6 @@
         bool Activo
     );
 
-    public record RegistroUsuarioRequest(
-        string Email,
-        string Password,
-        string Nombre,
-        string Apellido,
-        string Rol,
-        string? Cui,
-        string? Direccion,
-        string? Aldea,
-        string? Telefono,
-        DateTime? FechaNacimiento,
-        int? AreaId,
-        string? Cargo
-    );
 
     public record LoginRequest(string Email, string Password);
 
@@ -55,6 +55,15 @@
     string Email,
     string Cui
     );
+    public record UsuarioListItem(
+    string Id,
+    string Nombre,
+    string Apellido,
+    string Email,
+    bool Activo,
+    List<string> Roles,
+    List<string> Areas
+);
 
     public record CambiarPasswordRequest(
     string Email,

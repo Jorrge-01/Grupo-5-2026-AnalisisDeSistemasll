@@ -33,21 +33,25 @@ namespace SistemaMuniAtiende.Services
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<(bool exito, string mensaje)> RegistrarUsuarioAsync(RegistroUsuarioRequest req)
+        public async Task<(bool exito, string mensaje)> RegistrarUsuarioAsync(RegistroUsuarioRequest req, bool generarPasswordTemporal = false)
         {
             var rolesValidos = new[] { "Vecino", "Analista", "Empleado", "Administrador" };
             if (!rolesValidos.Contains(req.Rol))
                 return (false, "Rol inválido.");
+
+            string? passwordTemporalGenerada = generarPasswordTemporal ? GenerarPasswordTemporal() : null;
+            var passwordAUsar = generarPasswordTemporal ? passwordTemporalGenerada! : req.Password!;
 
             var user = new ApplicationUser
             {
                 UserName = req.Email,
                 Email = req.Email,
                 Nombre = req.Nombre,
-                Apellido = req.Apellido
+                Apellido = req.Apellido,
+                DebeCambiarPassword = generarPasswordTemporal
             };
 
-            var result = await _userManager.CreateAsync(user, req.Password);
+            var result = await _userManager.CreateAsync(user, passwordAUsar);
             if (!result.Succeeded)
                 return (false, string.Join(" | ", result.Errors.Select(e => e.Description)));
 
@@ -79,6 +83,14 @@ namespace SistemaMuniAtiende.Services
 
                 await _context.SaveChangesAsync();
 
+                if (generarPasswordTemporal)
+                {
+                    // Lo creó el Administrador → correo con contraseña temporal
+                    await EnviarCorreoCuentaCreadaPorAdmin(user, passwordTemporalGenerada!);
+                    return (true, $"{req.Rol} registrado correctamente. Se envió la contraseña temporal por correo.");
+                }
+
+                // Se autoregistró él mismo → correo de bienvenida normal, sin contraseña
                 try
                 {
                     await _emailService.EnviarAsync(
@@ -164,19 +176,94 @@ namespace SistemaMuniAtiende.Services
             }
             else if (req.Rol is "Analista" or "Empleado")
             {
-                if (req.AreaId == null)
-                    return (false, "Debe indicar el área para Analista o Empleado.");
+                if (req.AreaIds == null || req.AreaIds.Count == 0)
+                    return (false, "Debe asignar al menos un área.");
 
-                _context.PerfilesEmpleado.Add(new PerfilEmpleado
+                var areas = await _context.Areas.Where(a => req.AreaIds.Contains(a.Id)).ToListAsync();
+                if (areas.Count != req.AreaIds.Count)
+                    return (false, "Una o más áreas seleccionadas no existen.");
+
+                var perfil = new PerfilEmpleado
                 {
                     UserId = user.Id,
-                    AreaId = req.AreaId.Value,
                     Cargo = req.Cargo ?? req.Rol
-                });
+                };
+                foreach (var area in areas)
+                    perfil.Areas.Add(area);
+
+                _context.PerfilesEmpleado.Add(perfil);
                 await _context.SaveChangesAsync();
+
+                if (generarPasswordTemporal)
+                {
+                    await EnviarCorreoCuentaCreadaPorAdmin(user, passwordTemporalGenerada!);
+                    return (true, $"{req.Rol} registrado correctamente. Se envió la contraseña temporal por correo.");
+                }
+            }
+            else if (req.Rol == "Administrador" && generarPasswordTemporal)
+            {
+                // Un Administrador creando a otro Administrador
+                await EnviarCorreoCuentaCreadaPorAdmin(user, passwordTemporalGenerada!);
+                return (true, $"{req.Rol} registrado correctamente. Se envió la contraseña temporal por correo.");
             }
 
             return (true, $"{req.Rol} registrado correctamente.");
+        }
+
+        private async Task EnviarCorreoCuentaCreadaPorAdmin(ApplicationUser user, string passwordTemporal)
+        {
+            await _emailService.EnviarAsync(
+                user.Email!,
+                "Tu cuenta ha sido creada - Sistema QRDS",
+                $"""
+                <!DOCTYPE html>
+                <html lang="es">
+                <body style="margin:0; padding:0; background-color:#EEF1F5; font-family:'Segoe UI', Arial, sans-serif;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#EEF1F5; padding:32px 0;">
+                    <tr>
+                      <td align="center">
+                        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background-color:#F8FAFC; border-radius:10px; overflow:hidden;">
+                          <tr>
+                            <td style="background-color:#0F172A; padding:28px 32px;" align="center">
+                              <div style="width:48px; height:48px; border-radius:50%; background-color:#0D9488; display:inline-block; line-height:48px; text-align:center; color:#F8FAFC; font-size:20px; font-weight:600;">M</div>
+                              <p style="margin:12px 0 0; color:#F8FAFC; font-size:15px; letter-spacing:0.5px; text-transform:uppercase;">Municipalidad</p>
+                            </td>
+                          </tr>
+                          <tr><td style="height:6px; background-color:#0D9488;"></td></tr>
+                          <tr>
+                            <td style="padding:36px 32px;">
+                              <h1 style="margin:0 0 16px; color:#0F172A; font-size:22px;">Hola {user.Nombre},</h1>
+                              <p style="margin:0 0 16px; color:#334155; font-size:15px; line-height:1.6;">
+                                El administrador del sistema ha creado una cuenta para ti en el Portal Municipal.
+                              </p>
+                              <table role="presentation" cellpadding="0" cellspacing="0" style="background-color:#EEF1F5; border-radius:8px; width:100%; margin-bottom:24px;">
+                                <tr>
+                                  <td style="padding:16px 20px;">
+                                    <p style="margin:0; color:#475569; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;">Contraseña temporal</p>
+                                    <p style="margin:8px 0 0; color:#0F172A; font-size:20px; font-weight:700; letter-spacing:1px;">{passwordTemporal}</p>
+                                  </td>
+                                </tr>
+                              </table>
+                              <p style="margin:0 0 16px; color:#334155; font-size:15px; line-height:1.6;">
+                                Utiliza tu correo (<strong>{user.Email}</strong>) y esta contraseña para iniciar sesión.
+                              </p>
+                              <p style="margin:0; color:#334155; font-size:15px; line-height:1.6;">
+                                <strong>Por seguridad, deberás cambiarla al ingresar por primera vez.</strong>
+                              </p>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:20px 32px; background-color:#0F172A;" align="center">
+                              <p style="margin:0; color:#94A3B8; font-size:12px;">Este es un correo automático, por favor no respondas a este mensaje.</p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </body>
+                </html>
+                """);
         }
 
         public async Task<LoginResponse?> LoginAsync(LoginRequest req)
@@ -409,6 +496,72 @@ namespace SistemaMuniAtiende.Services
             await _userManager.UpdateAsync(user);
 
             return (true, "Contraseña actualizada correctamente.");
+        }
+
+        public async Task<List<UsuarioListItem>> ListarUsuariosAsync()
+        {
+            var usuarios = await _userManager.Users.ToListAsync();
+            var lista = new List<UsuarioListItem>();
+
+            foreach (var u in usuarios)
+            {
+                var roles = await _userManager.GetRolesAsync(u);
+                List<string> areas = new();
+
+                if (roles.Contains("Analista") || roles.Contains("Empleado"))
+                {
+                    var perfil = await _context.PerfilesEmpleado
+                        .Include(p => p.Areas)
+                        .FirstOrDefaultAsync(p => p.UserId == u.Id);
+                    areas = perfil?.Areas.Select(a => a.Nombre).ToList() ?? new List<string>();
+                }
+
+                lista.Add(new UsuarioListItem(u.Id, u.Nombre, u.Apellido, u.Email!, u.Activo, roles.ToList(), areas));
+            }
+
+            return lista;
+        }
+
+        public async Task<(bool exito, string mensaje)> ToggleActivoAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return (false, "Usuario no encontrado.");
+
+            user.Activo = !user.Activo;
+            await _userManager.UpdateAsync(user);
+
+            return (true, user.Activo ? "Usuario activado." : "Usuario desactivado.");
+        }
+
+        public async Task<(bool exito, string mensaje)> ResetPasswordAdminAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return (false, "Usuario no encontrado.");
+
+            var passwordTemporal = GenerarPasswordTemporal();
+
+            var removeResult = await _userManager.RemovePasswordAsync(user);
+            if (!removeResult.Succeeded)
+                return (false, "No se pudo generar la contraseña temporal.");
+
+            var addResult = await _userManager.AddPasswordAsync(user, passwordTemporal);
+            if (!addResult.Succeeded)
+                return (false, string.Join(" | ", addResult.Errors.Select(e => e.Description)));
+
+            user.DebeCambiarPassword = true;
+            await _userManager.UpdateAsync(user);
+
+            await _emailService.EnviarAsync(
+                user.Email!,
+                "Restablecimiento de contraseña - Sistema QRDS",
+                $"""
+                <h2>Hola {user.Nombre},</h2>
+                <p>El administrador del sistema ha restablecido tu contraseña.</p>
+                <p>Tu contraseña temporal es: <strong>{passwordTemporal}</strong></p>
+                <p>Por seguridad, deberás cambiarla al iniciar sesión.</p>
+                """);
+
+            return (true, "Se generó una contraseña temporal y se notificó al usuario.");
         }
     }
 }

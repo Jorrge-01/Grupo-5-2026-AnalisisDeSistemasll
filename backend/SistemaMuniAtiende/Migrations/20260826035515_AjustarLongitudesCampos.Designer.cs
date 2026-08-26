@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SistemaMuniAtiende.Api.Data;
@@ -11,9 +12,11 @@ using SistemaMuniAtiende.Api.Data;
 namespace SistemaMuniAtiende.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260826035515_AjustarLongitudesCampos")]
+    partial class AjustarLongitudesCampos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,21 +24,6 @@ namespace SistemaMuniAtiende.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("AreaPerfilEmpleado", b =>
-                {
-                    b.Property<int>("AreasId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PerfilEmpleadoId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("AreasId", "PerfilEmpleadoId");
-
-                    b.HasIndex("PerfilEmpleadoId");
-
-                    b.ToTable("AreaPerfilEmpleado");
-                });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -345,16 +333,20 @@ namespace SistemaMuniAtiende.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("AreaId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Cargo")
                         .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("character varying(60)");
+                        .HasColumnType("text");
 
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AreaId");
 
                     b.HasIndex("UserId");
 
@@ -401,21 +393,6 @@ namespace SistemaMuniAtiende.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PerfilesVecino");
-                });
-
-            modelBuilder.Entity("AreaPerfilEmpleado", b =>
-                {
-                    b.HasOne("SistemaMuniAtiende.Models.Area", null)
-                        .WithMany()
-                        .HasForeignKey("AreasId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SistemaMuniAtiende.Models.PerfilEmpleado", null)
-                        .WithMany()
-                        .HasForeignKey("PerfilEmpleadoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -471,11 +448,19 @@ namespace SistemaMuniAtiende.Migrations
 
             modelBuilder.Entity("SistemaMuniAtiende.Models.PerfilEmpleado", b =>
                 {
+                    b.HasOne("SistemaMuniAtiende.Models.Area", "Area")
+                        .WithMany()
+                        .HasForeignKey("AreaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("SistemaMuniAtiende.Models.ApplicationUser", "Usuario")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Area");
 
                     b.Navigation("Usuario");
                 });

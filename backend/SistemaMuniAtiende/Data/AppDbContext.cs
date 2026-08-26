@@ -35,9 +35,8 @@ namespace SistemaMuniAtiende.Api.Data
                 .HasForeignKey(p => p.UserId);
 
             builder.Entity<PerfilEmpleado>()
-                .HasOne(p => p.Area)
-                .WithMany()
-                .HasForeignKey(p => p.AreaId);
+    .HasMany(p => p.Areas)
+    .WithMany();
         }
     }
 }

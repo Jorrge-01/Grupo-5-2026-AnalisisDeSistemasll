@@ -33,7 +33,9 @@ namespace SistemaMuniAtiende.Api.Controllers
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> RegistroUsuario(RegistroUsuarioRequest req)
         {
-            var (exito, mensaje) = await _authService.RegistrarUsuarioAsync(req);
+            var generarTemporal = req.Rol != "Vecino";
+
+            var (exito, mensaje) = await _authService.RegistrarUsuarioAsync(req, generarPasswordTemporal: generarTemporal);
             if (!exito) return BadRequest(new { mensaje });
             return Ok(new { mensaje });
         }
@@ -63,6 +65,33 @@ namespace SistemaMuniAtiende.Api.Controllers
         public async Task<IActionResult> CambiarPassword(CambiarPasswordRequest req)
         {
             var (exito, mensaje) = await _authService.CambiarPasswordAsync(req);
+            if (!exito) return BadRequest(new { mensaje });
+            return Ok(new { mensaje });
+        }
+
+
+        [HttpGet("usuarios")]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> ListarUsuarios()
+        {
+            var usuarios = await _authService.ListarUsuariosAsync();
+            return Ok(usuarios);
+        }
+
+        [HttpPut("usuarios/{id}/toggle-activo")]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> ToggleActivo(string id)
+        {
+            var (exito, mensaje) = await _authService.ToggleActivoAsync(id);
+            if (!exito) return BadRequest(new { mensaje });
+            return Ok(new { mensaje });
+        }
+
+        [HttpPost("usuarios/{id}/reset-password")]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> ResetPassword(string id)
+        {
+            var (exito, mensaje) = await _authService.ResetPasswordAdminAsync(id);
             if (!exito) return BadRequest(new { mensaje });
             return Ok(new { mensaje });
         }

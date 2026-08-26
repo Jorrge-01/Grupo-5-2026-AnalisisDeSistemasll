@@ -1,4 +1,6 @@
-﻿namespace SistemaMuniAtiende.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace SistemaMuniAtiende.Models
 {
     public class PerfilVecino
     {
@@ -6,6 +8,7 @@
         public string UserId { get; set; } = string.Empty;
         public ApplicationUser? Usuario { get; set; }
         public string Cui { get; set; } = string.Empty;
+        [MaxLength(60)]
         public string Direccion { get; set; } = string.Empty;
         public string Aldea { get; set; } = string.Empty;
         public string Telefono { get; set; } = string.Empty;

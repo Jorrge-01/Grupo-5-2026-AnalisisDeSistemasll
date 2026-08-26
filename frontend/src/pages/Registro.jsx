@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import logoMuni from '../assets/logo-muni.png'
 import { apiFetch } from '../lib/api'
 import PasswordChecklist, { passwordEsValida } from '../components/PasswordChecklist'
-
+import EmailChecklist, { emailEsValido } from '../components/EmailChecklist'
 export default function Registro() {
   const [form, setForm] = useState({
     nombres: '',
@@ -83,10 +83,10 @@ export default function Registro() {
       setError('El teléfono debe tener 8 dígitos.')
       return
     }
-    if (!validarEmail(form.email)) {
-      setError('Ingresa un correo electrónico válido.')
-      return
-    }
+  if (!emailEsValido(form.email)) {
+  setError('Ingresa un correo electrónico válido.')
+  return
+}
     if (!passwordEsValida(form.password)) {
       setError('La contraseña no cumple con los requisitos de seguridad.')
       return
@@ -242,12 +242,13 @@ export default function Registro() {
                     />
                   </div>
                 </div>
-                <div>
-                  <label htmlFor="email" className={labelClass}>Correo electrónico</label>
-                  <input id="email" name="email" type="text" required
-                    value={form.email} onChange={handleChange}
-                    placeholder="tucorreo@ejemplo.com" className={`${inputClass} w-full`} />
-                </div>
+               <div>
+  <label htmlFor="email" className={labelClass}>Correo electrónico</label>
+  <input id="email" name="email" type="email" required
+    value={form.email} onChange={handleChange}
+    placeholder="tucorreo@ejemplo.com" className={`${inputClass} w-full`} />
+  <EmailChecklist email={form.email} />
+</div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-5">
