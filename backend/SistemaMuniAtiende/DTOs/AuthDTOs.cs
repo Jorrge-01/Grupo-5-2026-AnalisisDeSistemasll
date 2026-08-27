@@ -71,4 +71,12 @@
     string PasswordNueva,
     string ConfirmarPasswordNueva
 );
+
+    public record ActualizarPerfilVecinoRequest(
+    string Nombre,
+    string Apellido,
+    string Direccion,
+    string Aldea,
+    string Telefono
+);
 }

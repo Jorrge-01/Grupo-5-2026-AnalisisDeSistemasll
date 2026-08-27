@@ -245,7 +245,6 @@ export default function Registro() {
                     />
                   </div>
                 </div>
-<<<<<<< HEAD
                <div>
   <label htmlFor="email" className={labelClass}>Correo electrónico</label>
   <input id="email" name="email" type="email" required
@@ -253,15 +252,6 @@ export default function Registro() {
     placeholder="tucorreo@ejemplo.com" className={`${inputClass} w-full`} />
   <EmailChecklist email={form.email} />
 </div>
-=======
-                <div>
-                  <label htmlFor="email" className={labelClass}>Correo electrónico</label>
-                  <input id="email" name="email" type="text" required
-                    maxLength={40}
-                    value={form.email} onChange={handleChange}
-                    placeholder="tucorreo@ejemplo.com" className={`${inputClass} w-full`} />
-                </div>
->>>>>>> 0f04d2ffe2a310f226de216990611fb71e715b4d
               </div>
 
               <div className="grid sm:grid-cols-2 gap-5">

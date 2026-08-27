@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { UserPlus, Briefcase } from 'lucide-react'
 import HeaderInterno from '../components/HeaderInterno'
 import { apiFetch } from '../lib/api'
+import ModalExito from '../components/ModalExito'
+import ModalConfirmacion from '../components/ModalConfirmacion'
+import ModalCargando from '../components/ModalCargando'
 
 export default function GestionUsuarios() {
   const navigate = useNavigate()
@@ -12,12 +15,13 @@ export default function GestionUsuarios() {
   const [error, setError] = useState('')
   const [exito, setExito] = useState('')
   const [filtroRol, setFiltroRol] = useState('Todos')
-
+const [usuarioAConfirmar, setUsuarioAConfirmar] = useState(null)
+const [enviandoReset, setEnviandoReset] = useState(false)
   async function cargarUsuarios() {
     setCargandoLista(true)
     try {
       const token = localStorage.getItem('token')
-      const data = await apiFetch('/api/auth/usuarios', {
+      const data = await apiFetch('/api/auth/usuarios', { 
         headers: { Authorization: `Bearer ${token}` },
       })
       setUsuarios(data)
@@ -45,19 +49,28 @@ export default function GestionUsuarios() {
     }
   }
 
-  async function handleResetPassword(u) {
-    if (!confirm(`¿Restablecer la contraseña de ${u.nombre} ${u.apellido}? Se le enviará una temporal por correo.`)) return
-    try {
-      const token = localStorage.getItem('token')
-      await apiFetch(`/api/auth/usuarios/${u.id}/reset-password`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      setExito(`Se envió una contraseña temporal a ${u.email}.`)
-    } catch (err) {
-      setError('No se pudo restablecer la contraseña.')
-    }
+ function handleResetPassword(u) {
+  setUsuarioAConfirmar(u)
+}
+
+
+async function confirmarResetPassword() {
+  const u = usuarioAConfirmar
+  setUsuarioAConfirmar(null)
+  setEnviandoReset(true)
+  try {
+    const token = localStorage.getItem('token')
+    await apiFetch(`/api/auth/usuarios/${u.id}/reset-password`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    setExito(`Se envió una contraseña temporal a ${u.email}.`)
+  } catch (err) {
+    setError('No se pudo restablecer la contraseña.')
+  } finally {
+    setEnviandoReset(false)
   }
+}
 
   const roles = ['Todos', 'Vecino', 'Analista', 'Empleado', 'Administrador']
   const usuariosFiltrados = filtroRol === 'Todos'
@@ -167,6 +180,19 @@ export default function GestionUsuarios() {
           )}
         </div>
       </main>
+      <ModalConfirmacion
+  visible={!!usuarioAConfirmar}
+  titulo="Restablecer contraseña"
+  mensaje={usuarioAConfirmar ? `¿Restablecer la contraseña de ${usuarioAConfirmar.nombre} ${usuarioAConfirmar.apellido}? Se le enviará una temporal por correo.` : ''}
+  onConfirmar={confirmarResetPassword}
+  onCancelar={() => setUsuarioAConfirmar(null)}
+/>
+
+<ModalExito
+  mensaje={exito}
+  onCerrar={() => setExito('')}
+/>
+<ModalCargando visible={enviandoReset} mensaje="Generando contraseña temporal y notificando por correo." />
     </div>
   )
 }

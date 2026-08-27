@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SistemaMuniAtiende.DTOs;
 using SistemaMuniAtiende.Services;
+using System.Security.Claims;
 
 
 namespace SistemaMuniAtiende.Api.Controllers
@@ -95,5 +96,32 @@ namespace SistemaMuniAtiende.Api.Controllers
             if (!exito) return BadRequest(new { mensaje });
             return Ok(new { mensaje });
         }
+        [HttpGet("mi-perfil")]
+        [Authorize]
+        public async Task<IActionResult> MiPerfil()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Unauthorized();
+
+            var perfil = await _authService.ObtenerMiPerfilAsync(userId);
+            if (perfil == null) return NotFound();
+
+            return Ok(perfil);
+        }
+
+        [HttpPut("mi-perfil")]
+        [Authorize]
+        public async Task<IActionResult> ActualizarMiPerfil(ActualizarPerfilVecinoRequest req)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Unauthorized();
+
+            var (exito, mensaje) = await _authService.ActualizarMiPerfilAsync(userId, req);
+            if (!exito) return BadRequest(new { mensaje });
+            return Ok(new { mensaje });
+        }
+
+
+
     }
 }
