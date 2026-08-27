@@ -90,19 +90,7 @@ async function confirmarResetPassword() {
         </button>
 
         <div className="grid sm:grid-cols-2 gap-4 mb-8">
-          <Link
-            to="/admin/usuarios/vecino"
-            className="bg-[var(--color-piedra-clara)] rounded-lg border border-[var(--color-azul-piedra)]/15 p-6 hover:border-[var(--color-ocre)]/40 transition-colors flex items-center gap-4"
-          >
-            <div className="h-12 w-12 rounded-lg bg-[var(--color-verde-institucional)]/10 flex items-center justify-center flex-shrink-0">
-              <UserPlus className="h-6 w-6 text-[var(--color-verde-institucional)]" />
-            </div>
-            <div>
-              <p className="font-display font-semibold text-[var(--color-verde-institucional)]">Nuevo Vecino</p>
-              <p className="text-sm text-[var(--color-tinta)]/70">Registrar a alguien que llega presencialmente.</p>
-            </div>
-          </Link>
-
+          
           <Link
             to="/admin/usuarios/empleado"
             className="bg-[var(--color-piedra-clara)] rounded-lg border border-[var(--color-azul-piedra)]/15 p-6 hover:border-[var(--color-ocre)]/40 transition-colors flex items-center gap-4"

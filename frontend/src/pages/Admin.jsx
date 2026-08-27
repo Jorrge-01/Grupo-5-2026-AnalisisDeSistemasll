@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Users, LayoutGrid, MapPin, BarChart3 } from 'lucide-react'
+import { Users, LayoutGrid, MapPin, BarChart3, ClipboardList } from 'lucide-react'
 import HeaderInterno from '../components/HeaderInterno'
 
 export default function Admin() {
@@ -53,6 +53,24 @@ export default function Admin() {
               Administrar el catálogo de aldeas y comunidades del municipio.
             </p>
           </Link>
+
+          <div className="bg-[var(--color-piedra-clara)] rounded-lg border border-[var(--color-azul-piedra)]/15 p-6 opacity-60 cursor-not-allowed">
+          <div className="h-11 w-11 rounded-lg bg-[var(--color-verde-institucional)]/10 flex items-center justify-center mb-4">
+            <ClipboardList className="h-5 w-5 text-[var(--color-verde-institucional)]" />
+          </div>
+
+          <p className="font-display text-lg font-semibold text-[var(--color-verde-institucional)] mb-1">
+            Gestión de casos
+          </p>
+
+          <p className="text-sm text-[var(--color-tinta)]/70">
+            Casos por categoría, estado y tiempo de resolución.
+          </p>
+
+          <p className="text-xs text-[var(--color-ocre)] font-medium mt-2">
+            Próximamente
+          </p>
+        </div>
 
           <Link
             to="/admin/reportes"
