@@ -1,9 +1,30 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { X } from 'lucide-react'
 import HeaderInterno from '../components/HeaderInterno'
 import { apiFetch } from '../lib/api'
 
 const TAMANO_PAGINA = 25
+
+const MESES = [
+  { valor: 1, nombre: 'Enero' }, { valor: 2, nombre: 'Febrero' }, { valor: 3, nombre: 'Marzo' },
+  { valor: 4, nombre: 'Abril' }, { valor: 5, nombre: 'Mayo' }, { valor: 6, nombre: 'Junio' },
+  { valor: 7, nombre: 'Julio' }, { valor: 8, nombre: 'Agosto' }, { valor: 9, nombre: 'Septiembre' },
+  { valor: 10, nombre: 'Octubre' }, { valor: 11, nombre: 'Noviembre' }, { valor: 12, nombre: 'Diciembre' },
+]
+
+function traducirAccion(accion) {
+  const mapa = {
+    Added: 'Creación',
+    Modified: 'Modificación',
+    Deleted: 'Eliminación',
+    Login: 'Inicio de sesión',
+    Logout: 'Cierre de sesión',
+    Activado: 'Activación',
+    Desactivado: 'Desactivación',
+  }
+  return mapa[accion] || accion
+}
 
 export default function ReporteBitacora() {
   const navigate = useNavigate()
@@ -15,12 +36,17 @@ export default function ReporteBitacora() {
   const [error, setError] = useState('')
 
   const [entidades, setEntidades] = useState([])
+  const [anios, setAnios] = useState([])
+  const [filtroAnio, setFiltroAnio] = useState(new Date().getFullYear())
+  const [filtroMes, setFiltroMes] = useState(new Date().getMonth() + 1)
   const [filtroEntidad, setFiltroEntidad] = useState('')
   const [filtroAccion, setFiltroAccion] = useState('')
   const [filtroDesde, setFiltroDesde] = useState('')
   const [filtroHasta, setFiltroHasta] = useState('')
 
-  const acciones = ['Added', 'Modified', 'Deleted', 'Login']
+  const [registroDetalle, setRegistroDetalle] = useState(null)
+
+  const acciones = ['Added', 'Modified', 'Deleted', 'Login', 'Logout', 'Activado', 'Desactivado']
 
   async function cargarEntidades() {
     try {
@@ -28,6 +54,17 @@ export default function ReporteBitacora() {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       })
       setEntidades(data)
+    } catch (err) {
+      // silencioso, solo afecta el filtro
+    }
+  }
+
+  async function cargarAnios() {
+    try {
+      const data = await apiFetch('/api/bitacora/anios', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+      setAnios(data)
     } catch (err) {
       // silencioso, solo afecta el filtro
     }
@@ -41,6 +78,8 @@ export default function ReporteBitacora() {
         pagina: pagina.toString(),
         tamano: TAMANO_PAGINA.toString(),
       })
+      if (filtroAnio) params.append('anio', filtroAnio)
+      if (filtroMes) params.append('mes', filtroMes)
       if (filtroEntidad) params.append('entidad', filtroEntidad)
       if (filtroAccion) params.append('accion', filtroAccion)
       if (filtroDesde) params.append('desde', filtroDesde)
@@ -60,6 +99,7 @@ export default function ReporteBitacora() {
 
   useEffect(() => {
     cargarEntidades()
+    cargarAnios()
   }, [])
 
   useEffect(() => {
@@ -73,6 +113,8 @@ export default function ReporteBitacora() {
   }
 
   function handleLimpiar() {
+    setFiltroAnio('')
+    setFiltroMes('')
     setFiltroEntidad('')
     setFiltroAccion('')
     setFiltroDesde('')
@@ -85,8 +127,8 @@ export default function ReporteBitacora() {
     const encabezados = ['Fecha', 'Usuario', 'Acción', 'Entidad', 'ID Entidad', 'IP', 'Detalle']
     const filas = registros.map((r) => [
       new Date(r.fecha).toLocaleString('es-GT'),
-      r.userId || '',
-      r.accion,
+      r.usuario,
+      traducirAccion(r.accion),
       r.entidad,
       r.entidadId || '',
       r.ip || '',
@@ -106,6 +148,16 @@ export default function ReporteBitacora() {
     URL.revokeObjectURL(url)
   }
 
+  function formatearDetalle(detalleJson) {
+    if (!detalleJson) return 'Sin detalle disponible.'
+    try {
+      const obj = JSON.parse(detalleJson)
+      return JSON.stringify(obj, null, 2)
+    } catch {
+      return detalleJson
+    }
+  }
+
   const totalPaginas = Math.ceil(total / TAMANO_PAGINA)
   const inputClass =
     'w-full px-3 py-2 rounded-md border border-[var(--color-azul-piedra)]/30 bg-white text-[var(--color-tinta)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ocre)]'
@@ -123,7 +175,25 @@ export default function ReporteBitacora() {
         </button>
 
         <form onSubmit={handleFiltrar} className="bg-[var(--color-piedra-clara)] rounded-lg border border-[var(--color-azul-piedra)]/15 p-6 mb-6">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-[var(--color-tinta)]/70 mb-1">Año</label>
+              <select value={filtroAnio} onChange={(e) => setFiltroAnio(e.target.value)} className={inputClass}>
+                <option value="">Todos</option>
+                {anios.map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[var(--color-tinta)]/70 mb-1">Mes</label>
+              <select value={filtroMes} onChange={(e) => setFiltroMes(e.target.value)} className={inputClass}>
+                <option value="">Todos</option>
+                {MESES.map((m) => (
+                  <option key={m.valor} value={m.valor}>{m.nombre}</option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="block text-xs font-medium text-[var(--color-tinta)]/70 mb-1">Entidad</label>
               <select value={filtroEntidad} onChange={(e) => setFiltroEntidad(e.target.value)} className={inputClass}>
@@ -138,7 +208,7 @@ export default function ReporteBitacora() {
               <select value={filtroAccion} onChange={(e) => setFiltroAccion(e.target.value)} className={inputClass}>
                 <option value="">Todas</option>
                 {acciones.map((a) => (
-                  <option key={a} value={a}>{a}</option>
+                  <option key={a} value={a}>{traducirAccion(a)}</option>
                 ))}
               </select>
             </div>
@@ -150,7 +220,7 @@ export default function ReporteBitacora() {
               <label className="block text-xs font-medium text-[var(--color-tinta)]/70 mb-1">Hasta</label>
               <input type="date" value={filtroHasta} onChange={(e) => setFiltroHasta(e.target.value)} className={inputClass} />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-end sm:col-span-2 lg:col-span-2">
               <button type="submit" className="flex-1 py-2 rounded-md bg-[var(--color-ocre)] text-white text-sm font-semibold hover:bg-[var(--color-ocre-claro)] transition-colors">
                 Filtrar
               </button>
@@ -164,6 +234,11 @@ export default function ReporteBitacora() {
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm text-[var(--color-tinta)]/60">
             {total} {total === 1 ? 'registro' : 'registros'} encontrados
+            {filtroAnio && filtroMes && (
+              <span className="text-[var(--color-azul-piedra)]">
+                {' '}· mostrando {MESES.find((m) => m.valor === Number(filtroMes))?.nombre} {filtroAnio}
+              </span>
+            )}
           </p>
           <button
             onClick={handleExportarCsv}
@@ -188,13 +263,12 @@ export default function ReporteBitacora() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-[var(--color-verde-institucional)] text-[var(--color-piedra-clara)]">
-  <th className="text-left px-4 py-3 font-medium">Fecha</th>
-  <th className="text-left px-4 py-3 font-medium">Usuario</th>
-  <th className="text-left px-4 py-3 font-medium">Acción</th>
-  <th className="text-left px-4 py-3 font-medium">Entidad</th>
-  <th className="text-left px-4 py-3 font-medium">ID</th>
-  <th className="text-left px-4 py-3 font-medium">IP</th>
-</tr>
+                    <th className="text-left px-4 py-3 font-medium">Fecha</th>
+                    <th className="text-left px-4 py-3 font-medium">Usuario</th>
+                    <th className="text-left px-4 py-3 font-medium">Acción</th>
+                    <th className="text-left px-4 py-3 font-medium">IP</th>
+                    <th className="text-left px-4 py-3 font-medium">Detalle</th>
+                  </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-azul-piedra)]/10">
                   {registros.map((r) => (
@@ -203,16 +277,22 @@ export default function ReporteBitacora() {
                         {new Date(r.fecha).toLocaleString('es-GT')}
                       </td>
                       <td className="px-4 py-3 text-[var(--color-tinta)]/80">
-  {r.usuario}
-</td>
+                        {r.usuario}
+                      </td>
                       <td className="px-4 py-3">
                         <span className="px-2 py-0.5 rounded-full text-xs bg-[var(--color-azul-piedra)]/10 text-[var(--color-azul-piedra)]">
-                          {r.accion}
+                          {traducirAccion(r.accion)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-[var(--color-tinta)]">{r.entidad}</td>
-                      <td className="px-4 py-3 text-[var(--color-tinta)]/60">{r.entidadId || '—'}</td>
                       <td className="px-4 py-3 text-[var(--color-tinta)]/60">{r.ip || '—'}</td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => setRegistroDetalle(r)}
+                          className="text-xs text-[var(--color-ocre)] hover:underline font-medium"
+                        >
+                          Ver detalle
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -243,6 +323,47 @@ export default function ReporteBitacora() {
           </div>
         )}
       </main>
+
+      {registroDetalle && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          onClick={() => setRegistroDetalle(null)}
+        >
+          <div
+            className="bg-[var(--color-piedra-clara)] rounded-lg max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-azul-piedra)]/15">
+              <h3 className="font-display text-lg font-semibold text-[var(--color-verde-institucional)]">
+                Detalle del evento
+              </h3>
+              <button
+                onClick={() => setRegistroDetalle(null)}
+                className="text-[var(--color-tinta)]/50 hover:text-[var(--color-tinta)] transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-4 space-y-2 text-sm border-b border-[var(--color-azul-piedra)]/15">
+              <p><span className="font-medium text-[var(--color-tinta)]">Fecha:</span> <span className="text-[var(--color-tinta)]/70">{new Date(registroDetalle.fecha).toLocaleString('es-GT')}</span></p>
+              <p><span className="font-medium text-[var(--color-tinta)]">Usuario:</span> <span className="text-[var(--color-tinta)]/70">{registroDetalle.usuario}</span></p>
+              <p><span className="font-medium text-[var(--color-tinta)]">Acción:</span> <span className="text-[var(--color-tinta)]/70">{traducirAccion(registroDetalle.accion)}</span></p>
+              <p><span className="font-medium text-[var(--color-tinta)]">Entidad:</span> <span className="text-[var(--color-tinta)]/70">{registroDetalle.entidad} (ID: {registroDetalle.entidadId || '—'})</span></p>
+              <p><span className="font-medium text-[var(--color-tinta)]">IP:</span> <span className="text-[var(--color-tinta)]/70">{registroDetalle.ip || '—'}</span></p>
+            </div>
+
+            <div className="px-6 py-4 overflow-y-auto">
+              <p className="text-xs uppercase tracking-wide text-[var(--color-azul-piedra)] font-semibold mb-2">
+                Valores registrados
+              </p>
+              <pre className="text-xs bg-[var(--color-piedra)] rounded-md p-4 overflow-x-auto text-[var(--color-tinta)] whitespace-pre-wrap">
+                {formatearDetalle(registroDetalle.detalle)}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

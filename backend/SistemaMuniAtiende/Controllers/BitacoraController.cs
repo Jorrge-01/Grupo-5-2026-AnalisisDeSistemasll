@@ -19,12 +19,14 @@ namespace SistemaMuniAtiende.Controllers
         }
         [HttpGet]
         public async Task<IActionResult> Listar(
-            [FromQuery] int pagina = 1,
-            [FromQuery] int tamano = 50,
-            [FromQuery] string? entidad = null,
-            [FromQuery] string? accion = null,
-            [FromQuery] DateTime? desde = null,
-            [FromQuery] DateTime? hasta = null)
+      [FromQuery] int pagina = 1,
+      [FromQuery] int tamano = 50,
+      [FromQuery] string? entidad = null,
+      [FromQuery] string? accion = null,
+      [FromQuery] int? anio = null,
+      [FromQuery] int? mes = null,
+      [FromQuery] DateTime? desde = null,
+      [FromQuery] DateTime? hasta = null)
         {
             var query = _context.Bitacoras.AsQueryable();
 
@@ -33,6 +35,12 @@ namespace SistemaMuniAtiende.Controllers
 
             if (!string.IsNullOrWhiteSpace(accion))
                 query = query.Where(b => b.Accion == accion);
+
+            if (anio.HasValue)
+                query = query.Where(b => b.Fecha.Year == anio.Value);
+
+            if (mes.HasValue)
+                query = query.Where(b => b.Fecha.Month == mes.Value);
 
             if (desde.HasValue)
                 query = query.Where(b => b.Fecha >= DateTime.SpecifyKind(desde.Value, DateTimeKind.Utc));

@@ -177,7 +177,7 @@ export default function GestionAreas() {
 
                 <form onSubmit={handleCrear} className="bg-[var(--color-piedra-clara)] rounded-lg border border-[var(--color-azul-piedra)]/15 p-6 mb-8 space-y-4">
                     <h2 className="font-display text-lg font-semibold text-[var(--color-verde-institucional)]">
-                        Agregar área o categoría
+                        Agregar área
                     </h2>
 
                     <div>

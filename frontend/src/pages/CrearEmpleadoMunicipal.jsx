@@ -10,9 +10,8 @@ export default function CrearEmpleadoMunicipal() {
   const navigate = useNavigate()
 
   const [form, setForm] = useState({
-    nombres: '', apellidos: '', email: '', password: '', confirmarPassword: '',
-    rol: '', cargo: '',
-  })
+  nombres: '', apellidos: '', email: '', rol: '',
+})
   const [areasSeleccionadas, setAreasSeleccionadas] = useState([])
   const [areas, setAreas] = useState([])
   const [cargando, setCargando] = useState(false)
@@ -44,7 +43,7 @@ export default function CrearEmpleadoMunicipal() {
     if (!emailEsValido(form.email)) return setError('Ingresa un correo electrónico válido.')
 
     if (areasSeleccionadas.length === 0) return setError('Debes asignar al menos un área.')
-    if (!form.cargo.trim()) return setError('Indica el cargo.')
+   
 
     setCargando(true)
     try {
@@ -52,23 +51,22 @@ export default function CrearEmpleadoMunicipal() {
       await apiFetch('/api/auth/registro-usuario', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          email: form.email,
-          password:null,
-          nombre: form.nombres,
-          apellido: form.apellidos,
-          rol: form.rol,
-          cui: null,
-          direccion: null,
-          aldea: null,
-          telefono: null,
-          fechaNacimiento: null,
-          areaIds: areasSeleccionadas,
-          cargo: form.cargo,
-        }),
+       body: JSON.stringify({
+  email: form.email,
+  password: null,
+  nombre: form.nombres,
+  apellido: form.apellidos,
+  rol: form.rol,
+  cui: null,
+  direccion: null,
+  aldea: null,
+  telefono: null,
+  fechaNacimiento: null,
+  areaIds: areasSeleccionadas,
+}),
       })
       setExito(`${form.rol} registrado correctamente.`)
-      setForm({ nombres: '', apellidos: '', email: '',  rol: '', cargo: '' })
+      setForm({ nombres: '', apellidos: '', email: '', rol: '' })
       setAreasSeleccionadas([])
     } catch (err) {
       setError(traducirError(err.message) || 'No se pudo registrar al empleado.')
@@ -116,19 +114,15 @@ export default function CrearEmpleadoMunicipal() {
 
           
 
-          <div className="grid sm:grid-cols-2 gap-5">
-            <div>
-              <label className={labelClass}>Rol</label>
-              <select name="rol" value={form.rol} onChange={handleChange} className={inputClass}>
-                <option value="" disabled>Selecciona un rol</option>
-                <option value="Analista">Analista</option>
-                <option value="Empleado">Empleado</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Cargo</label>
-              <input name="cargo" maxLength={60} placeholder="Ej. Técnico de campo" value={form.cargo} onChange={handleChange} className={inputClass} />
-            </div>
+   
+          <div>
+  <label className={labelClass}>Rol</label>
+  <select name="rol" value={form.rol} onChange={handleChange} className={inputClass}>
+    <option value="" disabled>Selecciona un rol</option>
+    <option value="Analista">Analista</option>
+    <option value="Empleado">Empleado</option>
+  </select>
+
           </div>
 
           <div>

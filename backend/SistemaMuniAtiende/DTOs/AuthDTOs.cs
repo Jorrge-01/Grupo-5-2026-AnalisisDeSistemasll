@@ -1,19 +1,18 @@
 ﻿namespace SistemaMuniAtiende.DTOs
 {
     public record RegistroUsuarioRequest(
-      string Email,
-      string? Password,
-      string Nombre,
-      string Apellido,
-      string Rol,
-      string? Cui,
-      string? Direccion,
-      string? Aldea,
-      string? Telefono,
-      DateTime? FechaNacimiento,
-      List<int>? AreaIds,
-      string? Cargo
-  );
+     string Email,
+     string? Password,
+     string Nombre,
+     string Apellido,
+     string Rol,
+     string? Cui,
+     string? Direccion,
+     string? Aldea,
+     string? Telefono,
+     DateTime? FechaNacimiento,
+     List<int>? AreaIds
+ );
     public record RegistroVecinoRequest(
     string Email,
     string Password,

@@ -24,7 +24,7 @@ namespace SistemaMuniAtiende.Api.Controllers
                 new RegistroUsuarioRequest(
                     req.Email, req.Password, req.Nombre, req.Apellido, "Vecino",
                     req.Cui, req.Direccion, req.Aldea, req.Telefono, req.FechaNacimiento,
-                    null, null));
+                    null));
 
             if (!resultado.exito) return BadRequest(new { mensaje = resultado.mensaje });
             return Ok(new { mensaje = resultado.mensaje });
@@ -83,7 +83,8 @@ namespace SistemaMuniAtiende.Api.Controllers
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> ToggleActivo(string id)
         {
-            var (exito, mensaje) = await _authService.ToggleActivoAsync(id);
+            var adminId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var (exito, mensaje) = await _authService.ToggleActivoAsync(id, adminId);
             if (!exito) return BadRequest(new { mensaje });
             return Ok(new { mensaje });
         }
@@ -119,6 +120,18 @@ namespace SistemaMuniAtiende.Api.Controllers
             var (exito, mensaje) = await _authService.ActualizarMiPerfilAsync(userId, req);
             if (!exito) return BadRequest(new { mensaje });
             return Ok(new { mensaje });
+        }
+
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var email = User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            await _authService.RegistrarBitacoraLogoutAsync(userId, email, ip);
+            return Ok(new { mensaje = "Sesión cerrada." });
         }
 
 

@@ -32,7 +32,7 @@ export default function Admin() {
               <LayoutGrid className="h-5 w-5 text-[var(--color-verde-institucional)]" />
             </div>
             <p className="font-display text-lg font-semibold text-[var(--color-verde-institucional)] mb-1">
-              Áreas y categorías
+              Áreas
             </p>
             <p className="text-sm text-[var(--color-tinta)]/70">
               Administrar el catálogo de áreas municipales y su aplicabilidad.

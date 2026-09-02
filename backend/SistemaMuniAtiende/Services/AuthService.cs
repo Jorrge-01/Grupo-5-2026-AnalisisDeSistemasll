@@ -185,8 +185,7 @@ namespace SistemaMuniAtiende.Services
 
                 var perfil = new PerfilEmpleado
                 {
-                    UserId = user.Id,
-                    Cargo = req.Cargo ?? req.Rol
+                    UserId = user.Id
                 };
                 foreach (var area in areas)
                     perfil.Areas.Add(area);
@@ -298,7 +297,7 @@ namespace SistemaMuniAtiende.Services
             return new LoginResponse(token, user.Nombre, roles, false);
         }
 
-        private async Task RegistrarBitacoraLogin(string? userId, string email, string resultado, string? ip, string descripcion)
+        public async Task RegistrarBitacoraLogin(string? userId, string email, string resultado, string? ip, string descripcion)
         {
             _context.Bitacoras.Add(new Bitacora
             {
@@ -307,6 +306,21 @@ namespace SistemaMuniAtiende.Services
                 Entidad = "AspNetUsers",
                 EntidadId = userId ?? email,
                 Detalle = System.Text.Json.JsonSerializer.Serialize(new { email, resultado, descripcion }),
+                Ip = ip
+            });
+            await _context.SaveChangesAsync();
+        }
+
+
+        public async Task RegistrarBitacoraLogoutAsync(string? userId, string email, string? ip)
+        {
+            _context.Bitacoras.Add(new Bitacora
+            {
+                UserId = userId,
+                Accion = "Logout",
+                Entidad = "AspNetUsers",
+                EntidadId = userId ?? email,
+                Detalle = System.Text.Json.JsonSerializer.Serialize(new { email, descripcion = "Cierre de sesión" }),
                 Ip = ip
             });
             await _context.SaveChangesAsync();
@@ -522,7 +536,7 @@ namespace SistemaMuniAtiende.Services
             return lista;
         }
 
-        public async Task<(bool exito, string mensaje)> ToggleActivoAsync(string userId)
+        public async Task<(bool exito, string mensaje)> ToggleActivoAsync(string userId, string? adminId)
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) return (false, "Usuario no encontrado.");
@@ -530,9 +544,21 @@ namespace SistemaMuniAtiende.Services
             user.Activo = !user.Activo;
             await _userManager.UpdateAsync(user);
 
+            var ip = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString();
+
+            _context.Bitacoras.Add(new Bitacora
+            {
+                UserId = adminId,
+                Accion = user.Activo ? "Activado" : "Desactivado",
+                Entidad = "ApplicationUser",
+                EntidadId = user.Id,
+                Detalle = System.Text.Json.JsonSerializer.Serialize(new { email = user.Email, nuevoEstado = user.Activo }),
+                Ip = ip
+            });
+            await _context.SaveChangesAsync();
+
             return (true, user.Activo ? "Usuario activado." : "Usuario desactivado.");
         }
-
         public async Task<(bool exito, string mensaje)> ResetPasswordAdminAsync(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId);

@@ -1,17 +1,25 @@
 import { useNavigate } from 'react-router-dom'
 import logoMuni from '../assets/logo-muni.png'
-
+import { apiFetch } from '../lib/api'
 export default function HeaderInterno({ titulo }) {
   const navigate = useNavigate()
   const nombre = localStorage.getItem('nombre') || 'Usuario'
 
-  function handleLogout() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('nombre')
-    localStorage.removeItem('roles')
-    navigate('/login')
+ async function handleLogout() {
+  try {
+    const token = localStorage.getItem('token')
+    await apiFetch('/api/auth/logout', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  } catch (err) {
+    console.error('Error al registrar logout:', err) // ← temporal, para depurar
   }
-
+  localStorage.removeItem('token')
+  localStorage.removeItem('nombre')
+  localStorage.removeItem('roles')
+  navigate('/login')
+}
   return (
     <>
       <header className="bg-[var(--color-verde-institucional)] text-[var(--color-piedra-clara)]">

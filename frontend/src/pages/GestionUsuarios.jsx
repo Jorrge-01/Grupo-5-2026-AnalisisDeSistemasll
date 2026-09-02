@@ -36,18 +36,20 @@ const [enviandoReset, setEnviandoReset] = useState(false)
     cargarUsuarios()
   }, [])
 
-  async function handleToggleActivo(u) {
-    try {
-      const token = localStorage.getItem('token')
-      await apiFetch(`/api/auth/usuarios/${u.id}/toggle-activo`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      await cargarUsuarios()
-    } catch (err) {
-      setError('No se pudo actualizar el estado del usuario.')
-    }
+ async function handleToggleActivo(u) {
+  setError('')
+  try {
+    const token = localStorage.getItem('token')
+    const data = await apiFetch(`/api/auth/usuarios/${u.id}/toggle-activo`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    setExito(data.mensaje || `${u.nombre} ${u.apellido} actualizado correctamente.`)
+    await cargarUsuarios()
+  } catch (err) {
+    setError('No se pudo actualizar el estado del usuario.')
   }
+}
 
  function handleResetPassword(u) {
   setUsuarioAConfirmar(u)
