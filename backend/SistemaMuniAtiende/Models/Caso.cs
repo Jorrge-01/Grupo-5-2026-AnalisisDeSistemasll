@@ -13,6 +13,9 @@ namespace SistemaMuniAtiende.Models
         public string VecinoId { get; set; } = string.Empty;
         public ApplicationUser? Vecino { get; set; }
 
+        public string? AnalistaId { get; set; }
+        public ApplicationUser? Analista { get; set; }
+
         [Required]
         public int AreaId { get; set; }
         public Area? Area { get; set; }

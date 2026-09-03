@@ -53,6 +53,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<CasoService>();
+builder.Services.AddScoped<BolsonCasosService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

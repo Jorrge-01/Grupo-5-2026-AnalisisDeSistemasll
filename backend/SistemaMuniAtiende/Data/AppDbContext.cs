@@ -49,6 +49,12 @@ namespace SistemaMuniAtiende.Api.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<Caso>()
+                .HasOne(c => c.Analista)
+                .WithMany()
+                .HasForeignKey(c => c.AnalistaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Caso>()
                 .HasOne(c => c.Area)
                 .WithMany()
                 .HasForeignKey(c => c.AreaId)
@@ -77,6 +83,9 @@ namespace SistemaMuniAtiende.Api.Data
 
             builder.Entity<Caso>()
                 .HasIndex(c => c.Estado);
+
+            builder.Entity<Caso>()
+                .HasIndex(c => c.AnalistaId);
         }
     }
 }

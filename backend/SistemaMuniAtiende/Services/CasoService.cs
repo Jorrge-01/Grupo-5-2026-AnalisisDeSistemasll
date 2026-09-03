@@ -8,10 +8,12 @@ namespace SistemaMuniAtiende.Services
     public class CasoService
     {
         private readonly AppDbContext _context;
+        private readonly BolsonCasosService _bolsonCasosService;
 
-        public CasoService(AppDbContext context)
+        public CasoService(AppDbContext context, BolsonCasosService bolsonCasosService)
         {
             _context = context;
+            _bolsonCasosService = bolsonCasosService;
         }
 
         public async Task<(bool Exito, string Mensaje, CasoCreadoResponse? Caso)> RegistrarQuejaAsync(
@@ -76,6 +78,8 @@ namespace SistemaMuniAtiende.Services
             caso.Codigo = $"Q-{caso.Id:D6}";
 
             await _context.SaveChangesAsync();
+
+            await _bolsonCasosService.AsignarCasoAsync(caso);
 
             var respuesta = new CasoCreadoResponse(
                 caso.Id,
