@@ -11,17 +11,20 @@ export default function Vecino() {
 
       <main className="max-w-6xl mx-auto px-6 py-10">
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-[var(--color-piedra-clara)] rounded-lg border border-[var(--color-azul-piedra)]/15 p-6">
-            <div className="h-11 w-11 rounded-lg bg-[var(--color-verde-institucional)]/10 flex items-center justify-center mb-4">
-              <MessageSquarePlus className="h-5 w-5 text-[var(--color-verde-institucional)]" />
-            </div>
-            <p className="font-display text-lg font-semibold text-[var(--color-verde-institucional)] mb-1">
-              Registrar un caso
-            </p>
-            <p className="text-sm text-[var(--color-tinta)]/70">
-              Reporta una queja, reclamo, denuncia o sugerencia.
-            </p>
-          </div>
+          <Link
+              to="/vecino/casos/nuevo"
+              className="bg-[var(--color-piedra-clara)] rounded-lg border border-[var(--color-azul-piedra)]/15 p-6 hover:border-[var(--color-ocre)]/40 transition-colors"
+            >
+              <div className="h-11 w-11 rounded-lg bg-[var(--color-verde-institucional)]/10 flex items-center justify-center mb-4">
+                <MessageSquarePlus className="h-5 w-5 text-[var(--color-verde-institucional)]" />
+              </div>
+              <p className="font-display text-lg font-semibold text-[var(--color-verde-institucional)] mb-1">
+                Registrar un caso
+              </p>
+              <p className="text-sm text-[var(--color-tinta)]/70">
+                Reporta una queja, reclamo, denuncia o sugerencia.
+              </p>
+          </Link>
 
           <div className="bg-[var(--color-piedra-clara)] rounded-lg border border-[var(--color-azul-piedra)]/15 p-6">
             <div className="h-11 w-11 rounded-lg bg-[var(--color-verde-institucional)]/10 flex items-center justify-center mb-4">

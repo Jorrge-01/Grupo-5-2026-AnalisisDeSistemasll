@@ -21,6 +21,7 @@ import ReporteBitacora from './pages/ReporteBitacora'
 import ReporteUsuarios from './pages/ReporteUsuarios'
 import RutaProtegida from './components/RutaProtegida'
 import MiPerfil from './pages/MiPerfil'
+import RegistrarCaso from './pages/RegistrarCaso'
 
 function Inicio() {
   return (
@@ -157,6 +158,16 @@ function App() {
               </RutaProtegida>
             }
           />
+
+          <Route
+            path="/vecino/casos/nuevo"
+            element={
+              <RutaProtegida rolRequerido="Vecino">
+                <RegistrarCaso />
+              </RutaProtegida>
+            }
+          />
+
         </Routes>
       </Layout>
     </BrowserRouter>
