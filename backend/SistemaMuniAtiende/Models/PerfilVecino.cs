@@ -10,7 +10,8 @@ namespace SistemaMuniAtiende.Models
         public string Cui { get; set; } = string.Empty;
         [MaxLength(60)]
         public string Direccion { get; set; } = string.Empty;
-        public string Aldea { get; set; } = string.Empty;
+        public int? AldeaId { get; set; }
+        public Aldea? Aldea { get; set; }
         public string Telefono { get; set; } = string.Empty;
         public DateTime FechaNacimiento { get; set; }
     }

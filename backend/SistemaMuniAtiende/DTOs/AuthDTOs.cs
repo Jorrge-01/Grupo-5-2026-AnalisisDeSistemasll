@@ -8,7 +8,7 @@
      string Rol,
      string? Cui,
      string? Direccion,
-     string? Aldea,
+    int? AldeaId,
      string? Telefono,
      DateTime? FechaNacimiento,
      List<int>? AreaIds
@@ -20,7 +20,7 @@
     string Apellido,
     string Cui,
     string Direccion,
-    string Aldea,
+    int AldeaId,
     string Telefono,
     DateTime FechaNacimiento
 );
@@ -75,7 +75,7 @@
     string Nombre,
     string Apellido,
     string Direccion,
-    string Aldea,
+   int AldeaId,
     string Telefono
 );
 }

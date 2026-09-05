@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import HeaderInterno from '../components/HeaderInterno'
 import { apiFetch } from '../lib/api'
+import { traducirError } from '../lib/traducirError'
+import ModalConfirmacion from '../components/ModalConfirmacion'
+import ModalExito from '../components/ModalExito'
+import ModalCargando from '../components/ModalCargando'
 
 export default function GestionAldeas() {
   const navigate = useNavigate()
@@ -10,12 +14,15 @@ export default function GestionAldeas() {
   const [nombreNuevo, setNombreNuevo] = useState('')
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
+  const [exito, setExito] = useState('')
   const [cargandoLista, setCargandoLista] = useState(true)
+  const [procesando, setProcesando] = useState(false)
 
-  // Edición en línea
   const [editandoId, setEditandoId] = useState(null)
   const [nombreEditado, setNombreEditado] = useState('')
   const [guardandoEdicion, setGuardandoEdicion] = useState(false)
+
+  const [aldeaAEliminar, setAldeaAEliminar] = useState(null)
 
   async function cargarAldeas() {
     setCargandoLista(true)
@@ -53,13 +60,14 @@ export default function GestionAldeas() {
       setNombreNuevo('')
       await cargarAldeas()
     } catch (err) {
-      setError(err.message || 'No se pudo crear la aldea.')
+      setError(traducirError(err.message) || 'No se pudo crear la aldea.')
     } finally {
       setCargando(false)
     }
   }
 
   async function handleToggleActivo(aldea) {
+    setError('')
     try {
       const token = localStorage.getItem('token')
       await apiFetch(`/api/aldeas/${aldea.id}`, {
@@ -67,24 +75,10 @@ export default function GestionAldeas() {
         headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify({ nombre: aldea.nombre, activo: !aldea.activo }),
       })
+      setExito(`${aldea.nombre} fue ${!aldea.activo ? 'activada' : 'desactivada'} correctamente.`)
       await cargarAldeas()
     } catch (err) {
-      setError('No se pudo actualizar el estado de la aldea.')
-    }
-  }
-
-  async function handleEliminar(aldea) {
-    if (!confirm(`¿Eliminar "${aldea.nombre}"? Esta acción no se puede deshacer.`)) return
-
-    try {
-      const token = localStorage.getItem('token')
-      await apiFetch(`/api/aldeas/${aldea.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      await cargarAldeas()
-    } catch (err) {
-      setError('No se pudo eliminar la aldea.')
+      setError(traducirError(err.message) || 'No se pudo actualizar el estado de la aldea.')
     }
   }
 
@@ -115,11 +109,36 @@ export default function GestionAldeas() {
       })
       setEditandoId(null)
       setNombreEditado('')
+      setExito('Aldea actualizada correctamente.')
       await cargarAldeas()
     } catch (err) {
-      setError(err.message || 'No se pudo actualizar la aldea.')
+      setError(traducirError(err.message) || 'No se pudo actualizar la aldea.')
     } finally {
       setGuardandoEdicion(false)
+    }
+  }
+
+  function handlePedirEliminar(aldea) {
+    setError('')
+    setAldeaAEliminar(aldea)
+  }
+
+  async function confirmarEliminar() {
+    const aldea = aldeaAEliminar
+    setAldeaAEliminar(null)
+    setProcesando(true)
+    try {
+      const token = localStorage.getItem('token')
+      await apiFetch(`/api/aldeas/${aldea.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setExito(`"${aldea.nombre}" se eliminó correctamente.`)
+      await cargarAldeas()
+    } catch (err) {
+      setError(traducirError(err.message) || 'No se pudo eliminar la aldea.')
+    } finally {
+      setProcesando(false)
     }
   }
 
@@ -225,7 +244,7 @@ export default function GestionAldeas() {
                           {a.activo ? 'Desactivar' : 'Activar'}
                         </button>
                         <button
-                          onClick={() => handleEliminar(a)}
+                          onClick={() => handlePedirEliminar(a)}
                           className="text-sm text-red-500 hover:text-red-700 transition-colors"
                         >
                           Eliminar
@@ -239,6 +258,16 @@ export default function GestionAldeas() {
           )}
         </div>
       </main>
+
+      <ModalConfirmacion
+        visible={!!aldeaAEliminar}
+        titulo="Eliminar aldea"
+        mensaje={aldeaAEliminar ? `¿Eliminar "${aldeaAEliminar.nombre}"? Esta acción no se puede deshacer.` : ''}
+        onConfirmar={confirmarEliminar}
+        onCancelar={() => setAldeaAEliminar(null)}
+      />
+      <ModalCargando visible={procesando} mensaje="Eliminando aldea..." />
+      <ModalExito mensaje={exito} onCerrar={() => setExito('')} />
     </div>
   )
 }

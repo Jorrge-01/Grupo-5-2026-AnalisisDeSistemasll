@@ -15,7 +15,9 @@ namespace SistemaMuniAtiende.Controllers
         private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public UsuariosController(AppDbContext context, UserManager<ApplicationUser> userManager)
+        public UsuariosController(
+            AppDbContext context,
+            UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _userManager = userManager;
@@ -26,7 +28,7 @@ namespace SistemaMuniAtiende.Controllers
             [FromQuery] int pagina = 1,
             [FromQuery] int tamano = 25,
             [FromQuery] string? rol = null,
-            [FromQuery] string? aldea = null,
+            [FromQuery] int? aldeaId = null,
             [FromQuery] bool? activo = null)
         {
             if (pagina < 1)
@@ -37,15 +39,25 @@ namespace SistemaMuniAtiende.Controllers
 
             var query =
                 from usuario in _context.Users
+
                 join userRole in _context.UserRoles
-                    on usuario.Id equals userRole.UserId into rolesUsuario
+                    on usuario.Id equals userRole.UserId
+                    into rolesUsuario
+
                 from userRole in rolesUsuario.DefaultIfEmpty()
+
                 join role in _context.Roles
-                    on userRole.RoleId equals role.Id into roles
+                    on userRole.RoleId equals role.Id
+                    into roles
+
                 from role in roles.DefaultIfEmpty()
+
                 join perfilVecino in _context.PerfilesVecino
-                    on usuario.Id equals perfilVecino.UserId into perfiles
+                    on usuario.Id equals perfilVecino.UserId
+                    into perfiles
+
                 from perfilVecino in perfiles.DefaultIfEmpty()
+
                 select new
                 {
                     Usuario = usuario,
@@ -53,21 +65,25 @@ namespace SistemaMuniAtiende.Controllers
                     PerfilVecino = perfilVecino
                 };
 
+            // Filtro por rol
             if (!string.IsNullOrWhiteSpace(rol))
             {
                 query = query.Where(x => x.Rol == rol);
             }
 
-            if (!string.IsNullOrWhiteSpace(aldea))
+            // Filtro por aldea
+            if (aldeaId.HasValue)
             {
                 query = query.Where(x =>
                     x.PerfilVecino != null &&
-                    x.PerfilVecino.Aldea == aldea);
+                    x.PerfilVecino.AldeaId == aldeaId.Value);
             }
 
+            // Filtro por estado
             if (activo.HasValue)
             {
-                query = query.Where(x => x.Usuario.Activo == activo.Value);
+                query = query.Where(x =>
+                    x.Usuario.Activo == activo.Value);
             }
 
             var registros = await query
@@ -79,17 +95,28 @@ namespace SistemaMuniAtiende.Controllers
                     nombre = x.Usuario.Nombre,
                     apellido = x.Usuario.Apellido,
                     email = x.Usuario.Email,
+
                     rol = x.Rol ?? "Sin rol",
+
                     cui = x.PerfilVecino != null
                         ? x.PerfilVecino.Cui
                         : null,
-                    aldea = x.PerfilVecino != null
-                        ? x.PerfilVecino.Aldea
+
+                    aldeaId = x.PerfilVecino != null
+                        ? x.PerfilVecino.AldeaId
                         : null,
+
+                    aldea = x.PerfilVecino != null &&
+                            x.PerfilVecino.Aldea != null
+                        ? x.PerfilVecino.Aldea.Nombre
+                        : null,
+
                     telefono = x.PerfilVecino != null
                         ? x.PerfilVecino.Telefono
                         : null,
+
                     activo = x.Usuario.Activo,
+
                     fechaCreacion = x.Usuario.FechaCreacion
                 })
                 .ToListAsync();
@@ -125,11 +152,14 @@ namespace SistemaMuniAtiende.Controllers
         [HttpGet("aldeas")]
         public async Task<IActionResult> ListarAldeas()
         {
-            var aldeas = await _context.PerfilesVecino
-                .Where(p => !string.IsNullOrWhiteSpace(p.Aldea))
-                .Select(p => p.Aldea)
-                .Distinct()
-                .OrderBy(a => a)
+            var aldeas = await _context.Aldeas
+                .Where(a => a.Activo)
+                .OrderBy(a => a.Nombre)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.Nombre
+                })
                 .ToListAsync();
 
             return Ok(aldeas);

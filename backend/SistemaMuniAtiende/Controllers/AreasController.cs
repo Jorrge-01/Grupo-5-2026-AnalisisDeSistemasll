@@ -83,13 +83,18 @@ namespace SistemaMuniAtiende.Controllers
 
             return Ok(area);
         }
-
         [HttpDelete("{id}")]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Eliminar(int id)
         {
             var area = await _context.Areas.FindAsync(id);
             if (area == null) return NotFound(new { mensaje = "Área no encontrada." });
+
+            var tieneEmpleadosAsignados = await _context.PerfilesEmpleado
+                .AnyAsync(p => p.Areas.Any(a => a.Id == id));
+
+            if (tieneEmpleadosAsignados)
+                return BadRequest(new { mensaje = "No se puede eliminar el área porque tiene Analistas o Empleados asignados. Reasígnalos o desactiva el área en su lugar." });
 
             _context.Areas.Remove(area);
             await _context.SaveChangesAsync();

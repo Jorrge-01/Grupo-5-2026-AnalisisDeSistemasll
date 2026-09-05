@@ -23,7 +23,7 @@ namespace SistemaMuniAtiende.Api.Controllers
             var resultado = await _authService.RegistrarUsuarioAsync(
                 new RegistroUsuarioRequest(
                     req.Email, req.Password, req.Nombre, req.Apellido, "Vecino",
-                    req.Cui, req.Direccion, req.Aldea, req.Telefono, req.FechaNacimiento,
+                    req.Cui, req.Direccion, req.AldeaId, req.Telefono, req.FechaNacimiento,
                     null));
 
             if (!resultado.exito) return BadRequest(new { mensaje = resultado.mensaje });

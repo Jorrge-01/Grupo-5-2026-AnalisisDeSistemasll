@@ -79,7 +79,7 @@ export default function CrearVecino() {
           rol: 'Vecino',
           cui: form.dpi,
           direccion: form.direccion,
-          aldea: form.aldea,
+          aldeaId: Number(form.aldea) || null,
           telefono: `${form.codigoPais}${form.telefono}`,
           fechaNacimiento: form.fechaNacimiento,
           areaIds: null,

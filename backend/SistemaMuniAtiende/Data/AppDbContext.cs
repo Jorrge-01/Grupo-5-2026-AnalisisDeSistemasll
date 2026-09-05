@@ -40,7 +40,10 @@ namespace SistemaMuniAtiende.Api.Data
                 .HasMany(p => p.Areas)
                 .WithMany();
 
-
+            builder.Entity<PerfilVecino>()
+    .HasOne(p => p.Aldea)
+    .WithMany()
+    .HasForeignKey(p => p.AldeaId);
 
             builder.Entity<Caso>()
                 .HasOne(c => c.Vecino)

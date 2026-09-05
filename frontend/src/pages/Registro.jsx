@@ -111,7 +111,7 @@ export default function Registro() {
           apellido: form.apellidos,
           cui: form.dpi,
           direccion: form.direccion,
-          aldea: form.aldea,
+          aldeaId: Number(form.aldea) || null,
           telefono: `${form.codigoPais}${form.telefono}`,
           fechaNacimiento: form.fechaNacimiento,
         }),
@@ -203,7 +203,7 @@ export default function Registro() {
                     value={form.aldea} onChange={handleChange} className={`${inputClass} w-full`}>
                     <option value="" disabled>Selecciona una opción</option>
                     {aldeas.map((a) => (
-                      <option key={a.id} value={a.nombre}>{a.nombre}</option>
+                    <option key={a.id} value={a.id}>{a.nombre}</option>
                     ))}
                   </select>
                 </div>

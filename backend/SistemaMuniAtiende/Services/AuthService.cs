@@ -76,7 +76,7 @@ namespace SistemaMuniAtiende.Services
                     UserId = user.Id,
                     Cui = req.Cui,
                     Direccion = req.Direccion ?? string.Empty,
-                    Aldea = req.Aldea ?? string.Empty,
+                    AldeaId = req.AldeaId,
                     Telefono = req.Telefono ?? string.Empty,
                     FechaNacimiento = DateTime.SpecifyKind(req.FechaNacimiento ?? DateTime.MinValue, DateTimeKind.Utc)
                 });
@@ -637,7 +637,7 @@ namespace SistemaMuniAtiende.Services
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) return null;
 
-            var perfil = await _context.PerfilesVecino.FirstOrDefaultAsync(p => p.UserId == userId);
+            var perfil = await _context.PerfilesVecino.Include(p => p.Aldea).FirstOrDefaultAsync(p => p.UserId == userId);
 
             return new
             {
@@ -646,7 +646,8 @@ namespace SistemaMuniAtiende.Services
                 email = user.Email,
                 cui = perfil?.Cui,
                 direccion = perfil?.Direccion,
-                aldea = perfil?.Aldea,
+                aldeaId = perfil?.AldeaId,
+                aldea = perfil?.Aldea?.Nombre,
                 telefono = perfil?.Telefono,
                 fechaNacimiento = perfil?.FechaNacimiento
             };
@@ -665,7 +666,7 @@ namespace SistemaMuniAtiende.Services
             if (perfil != null)
             {
                 perfil.Direccion = req.Direccion;
-                perfil.Aldea = req.Aldea;
+                perfil.AldeaId = req.AldeaId;
                 perfil.Telefono = req.Telefono;
                 await _context.SaveChangesAsync();
             }

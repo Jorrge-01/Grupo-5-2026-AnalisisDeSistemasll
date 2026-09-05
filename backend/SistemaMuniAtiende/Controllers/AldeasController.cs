@@ -14,47 +14,89 @@ namespace SistemaMuniAtiende.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IMemoryCache _cache;
+
         private const string CachePrefix = "aldeas_";
         private static readonly TimeSpan Duracion = TimeSpan.FromMinutes(30);
 
-        public AldeasController(AppDbContext context, IMemoryCache cache)
+        public AldeasController(
+            AppDbContext context,
+            IMemoryCache cache)
         {
             _context = context;
             _cache = cache;
         }
 
+        // =========================================================
+        // GET: api/Aldeas
+        // GET: api/Aldeas?soloActivas=true
+        // GET: api/Aldeas?soloActivas=false
+        // =========================================================
         [HttpGet]
-        public async Task<IActionResult> Listar([FromQuery] bool soloActivas = true)
+        public async Task<IActionResult> Listar(
+            [FromQuery] bool soloActivas = true)
         {
             var cacheKey = $"{CachePrefix}{soloActivas}";
 
             if (_cache.TryGetValue(cacheKey, out List<Aldea>? aldeasCache))
+            {
                 return Ok(aldeasCache);
+            }
 
-            var query = _context.Aldeas.AsQueryable();
+            var query = _context.Aldeas
+                .AsNoTracking()
+                .AsQueryable();
+
             if (soloActivas)
+            {
                 query = query.Where(a => a.Activo);
+            }
 
-            var aldeas = await query.OrderBy(a => a.Nombre).ToListAsync();
+            var aldeas = await query
+                .OrderBy(a => a.Nombre)
+                .ToListAsync();
 
             _cache.Set(cacheKey, aldeas, Duracion);
 
             return Ok(aldeas);
         }
 
+        // =========================================================
+        // POST: api/Aldeas
+        // =========================================================
         [HttpPost]
         [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> Crear(CrearAldeaRequest req)
+        public async Task<IActionResult> Crear(
+            [FromBody] CrearAldeaRequest req)
         {
             if (string.IsNullOrWhiteSpace(req.Nombre))
-                return BadRequest(new { mensaje = "El nombre es obligatorio." });
+            {
+                return BadRequest(new
+                {
+                    mensaje = "El nombre es obligatorio."
+                });
+            }
 
-            var existe = await _context.Aldeas.AnyAsync(a => a.Nombre.ToLower() == req.Nombre.ToLower());
+            var nombre = req.Nombre.Trim();
+
+            var existe = await _context.Aldeas
+                .AnyAsync(a => a.Nombre.ToLower() == nombre.ToLower());
+
             if (existe)
-                return BadRequest(new { mensaje = "Ya existe una aldea/comunidad con ese nombre." });
+            {
+                return BadRequest(new
+                {
+                    mensaje = "Ya existe una aldea/comunidad con ese nombre."
+                });
+            }
 
-            var aldea = new Aldea { Nombre = req.Nombre.Trim() };
+            var aldea = new Aldea
+            {
+                Nombre = nombre,
+                Activo = true
+            };
+
             _context.Aldeas.Add(aldea);
+
             await _context.SaveChangesAsync();
 
             InvalidarCache();
@@ -62,15 +104,51 @@ namespace SistemaMuniAtiende.Controllers
             return Ok(aldea);
         }
 
-        [HttpPut("{id}")]
+        // =========================================================
+        // PUT: api/Aldeas/5
+        // =========================================================
+        [HttpPut("{id:int}")]
         [Authorize(Roles = "Administrador")]
-        public async Task<IActionResult> Actualizar(int id, ActualizarAldeaRequest req)
+        public async Task<IActionResult> Actualizar(
+            int id,
+            [FromBody] ActualizarAldeaRequest req)
         {
             var aldea = await _context.Aldeas.FindAsync(id);
-            if (aldea == null) return NotFound(new { mensaje = "Aldea no encontrada." });
 
-            aldea.Nombre = req.Nombre.Trim();
+            if (aldea == null)
+            {
+                return NotFound(new
+                {
+                    mensaje = "Aldea no encontrada."
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(req.Nombre))
+            {
+                return BadRequest(new
+                {
+                    mensaje = "El nombre es obligatorio."
+                });
+            }
+
+            var nombre = req.Nombre.Trim();
+
+            // Verificar que no exista otra aldea con el mismo nombre
+            var nombreDuplicado = await _context.Aldeas.AnyAsync(a =>
+                a.Id != id &&
+                a.Nombre.ToLower() == nombre.ToLower());
+
+            if (nombreDuplicado)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "Ya existe otra aldea/comunidad con ese nombre."
+                });
+            }
+
+            aldea.Nombre = nombre;
             aldea.Activo = req.Activo;
+
             await _context.SaveChangesAsync();
 
             InvalidarCache();
@@ -78,21 +156,50 @@ namespace SistemaMuniAtiende.Controllers
             return Ok(aldea);
         }
 
-        [HttpDelete("{id}")]
+        // =========================================================
+        // DELETE: api/Aldeas/5
+        // =========================================================
+        [HttpDelete("{id:int}")]
         [Authorize(Roles = "Administrador")]
         public async Task<IActionResult> Eliminar(int id)
         {
             var aldea = await _context.Aldeas.FindAsync(id);
-            if (aldea == null) return NotFound(new { mensaje = "Aldea no encontrada." });
+
+            if (aldea == null)
+            {
+                return NotFound(new
+                {
+                    mensaje = "Aldea no encontrada."
+                });
+            }
+
+            var tieneVecinosAsociados =
+                await _context.PerfilesVecino
+                    .AnyAsync(p => p.AldeaId == id);
+
+            if (tieneVecinosAsociados)
+            {
+                return BadRequest(new
+                {
+                    mensaje = "No se puede eliminar la aldea porque hay vecinos registrados con ella. Desactívala en su lugar."
+                });
+            }
 
             _context.Aldeas.Remove(aldea);
+
             await _context.SaveChangesAsync();
 
             InvalidarCache();
 
-            return Ok(new { mensaje = "Aldea eliminada correctamente." });
+            return Ok(new
+            {
+                mensaje = "Aldea eliminada correctamente."
+            });
         }
 
+        // =========================================================
+        // CACHE
+        // =========================================================
         private void InvalidarCache()
         {
             _cache.Remove($"{CachePrefix}True");
