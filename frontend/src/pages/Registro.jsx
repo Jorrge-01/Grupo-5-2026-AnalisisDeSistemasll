@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import logoMuni from '../assets/logo-muni.png'
 import { apiFetch } from '../lib/api'
+import { traducirError } from '../lib/traducirError'
 import PasswordChecklist, { passwordEsValida } from '../components/PasswordChecklist'
 import EmailChecklist, { emailEsValido } from '../components/EmailChecklist'
+
 export default function Registro() {
   const [form, setForm] = useState({
     nombres: '',
@@ -22,6 +24,7 @@ export default function Registro() {
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  const [aldeas, setAldeas] = useState([])
 
   const hoy = new Date().toISOString().split('T')[0]
 
@@ -30,6 +33,12 @@ export default function Registro() {
     fecha.setFullYear(fecha.getFullYear() - 18)
     return fecha.toISOString().split('T')[0]
   })()
+
+  useEffect(() => {
+    apiFetch('/api/aldeas')
+      .then(setAldeas)
+      .catch(() => setAldeas([]))
+  }, [])
 
   function handleChange(e) {
     const { name, value, type, checked } = e.target
@@ -83,10 +92,10 @@ export default function Registro() {
       setError('El teléfono debe tener 8 dígitos.')
       return
     }
-  if (!emailEsValido(form.email)) {
-  setError('Ingresa un correo electrónico válido.')
-  return
-}
+    if (!emailEsValido(form.email)) {
+      setError('Ingresa un correo electrónico válido.')
+      return
+    }
     if (!passwordEsValida(form.password)) {
       setError('La contraseña no cumple con los requisitos de seguridad.')
       return
@@ -119,7 +128,7 @@ export default function Registro() {
 
       navigate('/login')
     } catch (err) {
-      setError(err.message || 'No se pudo completar el registro. Intenta de nuevo.')
+      setError(traducirError(err.message) || 'No se pudo completar el registro. Intenta de nuevo.')
     } finally {
       setCargando(false)
     }
@@ -128,13 +137,6 @@ export default function Registro() {
   const inputClass =
     'px-4 py-2.5 rounded-md border border-[var(--color-azul-piedra)]/30 bg-white text-[var(--color-tinta)] placeholder:text-[var(--color-azul-piedra)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--color-ocre)] transition-shadow'
   const labelClass = 'block text-sm font-medium text-[var(--color-tinta)] mb-1.5'
-  const [aldeas, setAldeas] = useState([])
-
-  useEffect(() => {
-    apiFetch('/api/aldeas')
-      .then(setAldeas)
-      .catch(() => setAldeas([]))
-  }, [])
 
   return (
     <div className="min-h-[calc(100vh-73px)] flex items-center justify-center bg-[var(--color-piedra)] px-6 py-16">
@@ -153,7 +155,7 @@ export default function Registro() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
               <div className="grid sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="nombres" className={labelClass}>Nombres</label>
@@ -203,7 +205,7 @@ export default function Registro() {
                     value={form.aldea} onChange={handleChange} className={`${inputClass} w-full`}>
                     <option value="" disabled>Selecciona una opción</option>
                     {aldeas.map((a) => (
-                    <option key={a.id} value={a.id}>{a.nombre}</option>
+                      <option key={a.id} value={a.id}>{a.nombre}</option>
                     ))}
                   </select>
                 </div>
@@ -245,13 +247,13 @@ export default function Registro() {
                     />
                   </div>
                 </div>
-               <div>
-  <label htmlFor="email" className={labelClass}>Correo electrónico</label>
-  <input id="email" name="email" type="email" required
-    value={form.email} onChange={handleChange}
-    placeholder="tucorreo@ejemplo.com" className={`${inputClass} w-full`} />
-  <EmailChecklist email={form.email} />
-</div>
+                <div>
+                  <label htmlFor="email" className={labelClass}>Correo electrónico</label>
+                  <input id="email" name="email" type="email" required
+                    value={form.email} onChange={handleChange}
+                    placeholder="tucorreo@ejemplo.com" className={`${inputClass} w-full`} />
+                  <EmailChecklist email={form.email} />
+                </div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-5">

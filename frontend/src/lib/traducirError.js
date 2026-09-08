@@ -7,7 +7,9 @@ const traducciones = [
   { patron: /Passwords must have at least one lowercase/i, reemplazo: () => 'La contraseña debe contener al menos una letra minúscula.' },
   { patron: /Passwords must have at least one non alphanumeric/i, reemplazo: () => 'La contraseña debe contener al menos un carácter especial.' },
   { patron: /Incorrect password/i, reemplazo: () => 'La contraseña actual es incorrecta.' },
-  { patron: /already taken/i, reemplazo: () => 'Ese correo o usuario ya está en uso.' },
+  { patron: /Username '.*' is already taken/i, reemplazo: () => 'Este correo ya está registrado.' },
+  { patron: /Email '.*' is already taken/i, reemplazo: () => 'Este correo ya está registrado.' },
+  { patron: /already taken/i, reemplazo: () => 'Este correo ya está registrado.' },
   { patron: /is invalid/i, reemplazo: () => 'El valor ingresado no es válido.' },
   { patron: /locked out/i, reemplazo: () => 'La cuenta está bloqueada temporalmente por múltiples intentos fallidos.' },
 ]
@@ -25,5 +27,6 @@ export function traducirError(mensaje) {
     return parte
   })
 
-  return traducidas.join(' ')
+  const sinDuplicados = [...new Set(traducidas)]
+  return sinDuplicados.join(' ')
 }
