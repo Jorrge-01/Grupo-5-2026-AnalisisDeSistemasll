@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SistemaMuniAtiende.DTOs;
+using SistemaMuniAtiende.Models;
 using SistemaMuniAtiende.Services;
 using System.Security.Claims;
 
@@ -53,6 +54,7 @@ namespace SistemaMuniAtiende.Controllers
                 new { id = resultado.Caso!.Id },
                 resultado.Caso);
         }
+              
 
         [HttpGet("{id}")]
         [Authorize(Roles = "Vecino")]
@@ -70,5 +72,145 @@ namespace SistemaMuniAtiende.Controllers
 
             return Ok(caso);
         }
+
+        [HttpGet("mis-casos")]
+        [Authorize(Roles = "Analista")]
+        public async Task<IActionResult> ObtenerMisCasos()
+        {
+            var analistaId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (analistaId == null)
+                return Unauthorized(new { mensaje = "No se pudo identificar al analista." });
+
+            var casos = await _casoService.ObtenerCasosDelAnalistaAsync(analistaId);
+
+            return Ok(casos);
+        }
+
+        [HttpGet("{id}/detalle")]
+        [Authorize(Roles = "Analista")]
+        public async Task<IActionResult> ObtenerDetalleParaAnalista(int id)
+        {
+            var analistaId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (analistaId == null)
+                return Unauthorized(new
+                {
+                    mensaje = "No se pudo identificar al analista."
+                });
+
+            var caso = await _casoService
+                .ObtenerDetalleParaAnalistaAsync(id, analistaId);
+
+            if (caso == null)
+                return NotFound(new
+                {
+                    mensaje = "El caso no existe o no está asignado a este analista."
+                });
+
+            return Ok(caso);
+        }
+
+        [HttpPost("{id}/validar")]
+        [Authorize(Roles = "Analista")]
+        public async Task<IActionResult> ValidarCaso(int id)
+        {
+            var analistaId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (analistaId == null)
+            {
+                return Unauthorized(new
+                {
+                    mensaje = "No se pudo identificar al analista."
+                });
+            }
+
+            var resultado = await _casoService.ValidarCasoAsync(
+                id,
+                analistaId
+            );
+
+            if (!resultado.Exito)
+            {
+                return BadRequest(new
+                {
+                    mensaje = resultado.Mensaje
+                });
+            }
+
+            return Ok(new
+            {
+                mensaje = resultado.Mensaje,
+                estado = EstadoCaso.EnAnalisis.ToString()
+            });
+        }
+
+        [HttpPost("{id}/solicitar-informacion")]
+        [Authorize(Roles = "Analista")]
+        public async Task<IActionResult> SolicitarInformacion(int id, SolicitarInformacionRequest request)
+        {
+            var analistaId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (analistaId == null)
+            {
+                return Unauthorized(new
+                {
+                    mensaje = "No se pudo identificar al analista."
+                });
+            }
+
+            var resultado = await _casoService.SolicitarInformacionAsync(
+                id,
+                analistaId,
+                request
+            );
+
+            if (!resultado.Exito)
+            {
+                return BadRequest(new
+                {
+                    mensaje = resultado.Mensaje
+                });
+            }
+
+            return Ok(new
+            {
+                mensaje = resultado.Mensaje,
+                estado = EstadoCaso.PendienteInformacion.ToString()
+            });
+        }
+
+        [HttpPost("{id}/responder-informacion")]
+        [Authorize(Roles = "Vecino")]
+        public async Task<IActionResult> ResponderInformacion(int id, ResponderInformacionRequest request)
+        {
+            var vecinoId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (vecinoId == null)
+                return Unauthorized(new
+                {
+                    mensaje = "No se pudo identificar al vecino."
+                });
+
+            var resultado = await _casoService.ResponderInformacionAsync(
+                id,
+                vecinoId,
+                request);
+
+            if (!resultado.Exito)
+                return BadRequest(new
+                {
+                    mensaje = resultado.Mensaje
+                });
+
+            return Ok(new
+            {
+                mensaje = resultado.Mensaje,
+                estado = EstadoCaso.EnValidacion.ToString()
+            });
+        }
     }
 }
+
+
+

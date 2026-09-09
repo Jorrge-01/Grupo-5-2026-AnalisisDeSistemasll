@@ -138,5 +138,203 @@ namespace SistemaMuniAtiende.Services
                 caso.Estado.ToString()
             );
         }
+
+        public async Task<List<CasoAnalistaResponse>> ObtenerCasosDelAnalistaAsync(string analistaId)
+        {
+            return await _context.Casos
+                .AsNoTracking()
+                .Where(c => c.AnalistaId == analistaId)
+                .Include(c => c.Area)
+                .Include(c => c.Aldea)
+                .OrderByDescending(c => c.FechaRegistro)
+                .Select(c => new CasoAnalistaResponse(
+                    c.Id,
+                    c.Codigo,
+                    c.Area != null ? c.Area.Nombre : "",
+                    c.Aldea != null ? c.Aldea.Nombre : "",
+                    c.Direccion,
+                    c.Descripcion,
+                    c.FechaRegistro,
+                    c.Estado.ToString()
+                ))
+                .ToListAsync();
+        }
+
+        public async Task<CasoAnalistaDetalleResponse?> ObtenerDetalleParaAnalistaAsync(int casoId, string analistaId)
+        {
+            return await _context.Casos
+                .AsNoTracking()
+                .Where(c => c.Id == casoId && c.AnalistaId == analistaId)
+                .Include(c => c.Area)
+                .Include(c => c.Aldea)
+                .Select(c => new CasoAnalistaDetalleResponse(
+                    c.Id,
+                    c.Codigo,
+                    c.Area != null ? c.Area.Nombre : "",
+                    c.Aldea != null ? c.Aldea.Nombre : "",
+                    c.Direccion,
+                    c.TelefonoContacto,
+                    c.Descripcion,
+                    c.FechaRegistro,
+                    c.Estado.ToString()
+                ))
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<(bool Exito, string Mensaje)> ValidarCasoAsync(int casoId, string analistaId)
+        {
+            var caso = await _context.Casos
+                .FirstOrDefaultAsync(c =>
+                    c.Id == casoId &&
+                    c.AnalistaId == analistaId);
+
+            if (caso == null)
+                return (false, "El caso no existe o no está asignado a este analista.");
+
+            if (caso.Estado != EstadoCaso.Asignada &&
+                caso.Estado != EstadoCaso.EnValidacion)
+            {
+                return (false, "El caso no se encuentra disponible para validación.");
+            }
+
+
+            if (caso.Estado == EstadoCaso.EnValidacion)
+            {
+                var solicitud = await _context.SolicitudesInformacionCaso
+                    .Where(s =>
+                        s.CasoId == casoId &&
+                        s.Estado == EstadoSolicitudInformacion.Respondida)
+                    .OrderByDescending(s => s.FechaRespuesta)
+                    .FirstOrDefaultAsync();
+
+                if (solicitud == null)
+                {
+                    return (false, "El caso está en validación, pero no tiene una respuesta de información registrada.");
+                }
+            }
+
+
+            caso.Estado = EstadoCaso.EnAnalisis;
+
+            await _context.SaveChangesAsync();
+
+            return (true, "El caso fue validado correctamente y pasó a análisis.");
+        }
+
+
+
+        public async Task<(bool Exito, string Mensaje)> SolicitarInformacionAsync(int casoId, string analistaId, SolicitarInformacionRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Mensaje))
+            {
+                return (false, "Debe indicar qué información necesita del vecino.");
+
+            }
+
+            if (request.Mensaje.Length > 2000)
+            {
+                return (false, "La solicitud no puede superar los 2000 caracteres.");
+
+            }
+
+            var caso = await _context.Casos
+                .FirstOrDefaultAsync(c =>
+                    c.Id == casoId &&
+                    c.AnalistaId == analistaId);
+
+            if (caso == null)
+            {
+                return (false, "El caso no existe o no está asignado a este analista.");
+
+            }
+
+            if (caso.Estado != EstadoCaso.Asignada)
+            {
+                return (false, "El caso no se encuentra disponible para solicitar información.");
+
+            }
+
+            var solicitudPendiente = await _context.SolicitudesInformacionCaso
+                .AnyAsync(s =>
+                    s.CasoId == casoId &&
+                    s.Estado == EstadoSolicitudInformacion.Pendiente);
+
+            if (solicitudPendiente)
+            {
+                return (false, "El caso ya tiene una solicitud de información pendiente.");
+
+            }
+
+            var solicitud = new SolicitudInformacionCaso
+            {
+                CasoId = casoId,
+                AnalistaId = analistaId,
+                Mensaje = request.Mensaje.Trim(),
+                FechaSolicitud = DateTime.UtcNow,
+                Estado = EstadoSolicitudInformacion.Pendiente
+            };
+
+            _context.SolicitudesInformacionCaso.Add(solicitud);
+
+            caso.Estado = EstadoCaso.PendienteInformacion;
+
+            await _context.SaveChangesAsync();
+
+            return (true, "Se solicitó información al vecino correctamente.");
+
+        }
+
+        public async Task<(bool Exito, string Mensaje)> ResponderInformacionAsync(int casoId, string vecinoId, ResponderInformacionRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Respuesta))
+                return (false, "Debe proporcionar una respuesta.");
+
+            if (request.Respuesta.Length > 2000)
+                return (false, "La respuesta no puede superar los 2000 caracteres.");
+
+            var caso = await _context.Casos
+                .FirstOrDefaultAsync(c =>
+                    c.Id == casoId &&
+                    c.VecinoId == vecinoId);
+
+            if (caso == null)
+                return (false, "El caso no existe o no pertenece al vecino.");
+
+            if (caso.Estado != EstadoCaso.PendienteInformacion)
+                return (false, "El caso no tiene una solicitud de información pendiente.");
+
+            var solicitud = await _context.SolicitudesInformacionCaso
+                .Where(s =>
+                    s.CasoId == casoId &&
+                    s.Estado == EstadoSolicitudInformacion.Pendiente)
+                .OrderByDescending(s => s.FechaSolicitud)
+                .FirstOrDefaultAsync();
+
+            if (solicitud == null)
+                return (false, "No existe una solicitud de información pendiente para este caso.");
+
+            solicitud.Respuesta = request.Respuesta.Trim();
+            solicitud.FechaRespuesta = DateTime.UtcNow;
+            solicitud.Estado = EstadoSolicitudInformacion.Respondida;
+
+            caso.Estado = EstadoCaso.EnValidacion;
+
+            await _context.SaveChangesAsync();
+
+            return (true, "La información fue enviada correctamente y el caso pasó a validación.");
+        }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

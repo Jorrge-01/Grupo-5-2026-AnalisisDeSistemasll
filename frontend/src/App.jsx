@@ -22,6 +22,8 @@ import ReporteUsuarios from './pages/ReporteUsuarios'
 import RutaProtegida from './components/RutaProtegida'
 import MiPerfil from './pages/MiPerfil'
 import RegistrarCaso from './pages/RegistrarCaso'
+import Analista from './pages/Analista'
+import DetalleCasoAnalista from './pages/DetalleCasoAnalista'
 
 function Inicio() {
   return (
@@ -164,6 +166,24 @@ function App() {
             element={
               <RutaProtegida rolRequerido="Vecino">
                 <RegistrarCaso />
+              </RutaProtegida>
+            }
+          />
+
+          <Route
+            path="/analista"
+            element={
+              <RutaProtegida rolRequerido="Analista">
+                <Analista />
+              </RutaProtegida>
+            }
+          />
+
+          <Route
+            path="/analista/casos/:id"
+            element={
+              <RutaProtegida rolRequerido="Analista">
+                <DetalleCasoAnalista />
               </RutaProtegida>
             }
           />

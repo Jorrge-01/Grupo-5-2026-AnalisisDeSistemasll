@@ -20,4 +20,31 @@
         DateTime FechaRegistro,
         string Estado
     );
+
+    public record CasoAnalistaResponse(
+    int Id,
+    string Codigo,
+    string Area,
+    string Aldea,
+    string Direccion,
+    string Descripcion,
+    DateTime FechaRegistro,
+    string Estado
+    );
+
+    public record CasoAnalistaDetalleResponse(
+    int Id,
+    string Codigo,
+    string Area,
+    string Aldea,
+    string Direccion,
+    string TelefonoContacto,
+    string Descripcion,
+    DateTime FechaRegistro,
+    string Estado
+    );
+
+    public record SolicitarInformacionRequest(string Mensaje);
+
+    public record ResponderInformacionRequest(string Respuesta);
 }
