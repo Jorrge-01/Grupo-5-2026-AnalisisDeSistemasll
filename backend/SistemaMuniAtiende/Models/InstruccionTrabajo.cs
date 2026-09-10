@@ -1,0 +1,27 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace SistemaMuniAtiende.Models
+{
+    public class InstruccionTrabajo
+    {
+        public int Id { get; set; }
+
+        public int CasoId { get; set; }
+        public Caso? Caso { get; set; }
+
+        [Required]
+        public string AnalistaId { get; set; } = string.Empty;
+        public ApplicationUser? Analista { get; set; }
+
+        [Required, MaxLength(2000)]
+        public string Instruccion { get; set; } = string.Empty;
+
+        [Required]
+        public string OperarioId { get; set; } = string.Empty;
+        public ApplicationUser? Operario { get; set; }
+
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+
+        public DateTime? FechaAsignacion { get; set; }
+    }
+}

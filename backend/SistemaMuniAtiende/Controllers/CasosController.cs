@@ -209,8 +209,119 @@ namespace SistemaMuniAtiende.Controllers
                 estado = EstadoCaso.EnValidacion.ToString()
             });
         }
+
+        [HttpPost("{id}/instruccion")]
+        [Authorize(Roles = "Analista")]
+        public async Task<IActionResult> CrearInstruccion(int id, CrearInstruccionTrabajoRequest request)
+        {
+            var analistaId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (analistaId == null)
+                return Unauthorized(new
+                {
+                    mensaje = "No se pudo identificar al analista."
+                });
+
+            var resultado = await _casoService.CrearInstruccionTrabajoAsync(
+                id,
+                analistaId,
+                request);
+
+            if (!resultado.Exito)
+                return BadRequest(new
+                {
+                    mensaje = resultado.Mensaje
+                });
+
+            return Ok(new
+            {
+                mensaje = resultado.Mensaje,
+                estado = EstadoCaso.AsignadaAOperario.ToString()
+            });
+        }
+
+        [HttpGet("mis-casos-operario")]
+        [Authorize(Roles = "Empleado")]
+        public async Task<IActionResult> ObtenerMisCasosOperario()
+        {
+            var operarioId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (operarioId == null)
+            {
+                return Unauthorized(new
+                {
+                    mensaje = "No se pudo identificar al operario."
+                });
+            }
+
+            var casos = await _casoService.ObtenerCasosDelOperarioAsync(
+                operarioId);
+
+            return Ok(casos);
+        }
+
+        [HttpGet("{id}/detalle-operario")]
+        [Authorize(Roles = "Empleado")]
+        public async Task<IActionResult> ObtenerDetalleParaOperario(int id)
+        {
+            var operarioId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (operarioId == null)
+            {
+                return Unauthorized(new
+                {
+                    mensaje = "No se pudo identificar al operario."
+                });
+            }
+
+            var caso = await _casoService.ObtenerDetalleParaOperarioAsync(
+                id,
+                operarioId);
+
+            if (caso == null)
+            {
+                return NotFound(new
+                {
+                    mensaje = "El caso no existe o no está asignado a este operario."
+                });
+            }
+
+            return Ok(caso);
+        }
+
+        [HttpPost("{id}/iniciar-trabajo")]
+        [Authorize(Roles = "Empleado")]
+        public async Task<IActionResult> IniciarTrabajo(int id)
+        {
+            var operarioId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (operarioId == null)
+            {
+                return Unauthorized(new
+                {
+                    mensaje = "No se pudo identificar al operario."
+                });
+            }
+
+            var resultado = await _casoService.IniciarTrabajoAsync(
+                id,
+                operarioId);
+
+            if (!resultado.Exito)
+            {
+                return BadRequest(new
+                {
+                    mensaje = resultado.Mensaje
+                });
+            }
+
+            return Ok(new
+            {
+                mensaje = resultado.Mensaje,
+                estado = EstadoCaso.EnEjecucion.ToString()
+            });
+        }
     }
 }
-
 
 

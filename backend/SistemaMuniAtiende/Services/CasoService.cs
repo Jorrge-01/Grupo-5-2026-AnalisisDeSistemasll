@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using SistemaMuniAtiende.Api.Data;
 using SistemaMuniAtiende.DTOs;
 using SistemaMuniAtiende.Models;
@@ -9,11 +10,13 @@ namespace SistemaMuniAtiende.Services
     {
         private readonly AppDbContext _context;
         private readonly BolsonCasosService _bolsonCasosService;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public CasoService(AppDbContext context, BolsonCasosService bolsonCasosService)
+        public CasoService(AppDbContext context, BolsonCasosService bolsonCasosService, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _bolsonCasosService = bolsonCasosService;
+            _userManager = userManager;
         }
 
         public async Task<(bool Exito, string Mensaje, CasoCreadoResponse? Caso)> RegistrarQuejaAsync(
@@ -323,8 +326,199 @@ namespace SistemaMuniAtiende.Services
 
             return (true, "La información fue enviada correctamente y el caso pasó a validación.");
         }
+
+        public async Task<(bool Exito, string Mensaje)> CrearInstruccionTrabajoAsync(int casoId, string analistaId, CrearInstruccionTrabajoRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Instruccion))
+                return (false, "Debe indicar las instrucciones de trabajo.");
+
+            if (request.Instruccion.Length > 2000)
+                return (false, "La instrucción no puede superar los 2000 caracteres.");
+
+            var caso = await _context.Casos
+                .FirstOrDefaultAsync(c =>
+                    c.Id == casoId &&
+                    c.AnalistaId == analistaId);
+
+            if (caso == null)
+                return (false, "El caso no existe o no está asignado a este analista.");
+
+            if (caso.Estado != EstadoCaso.EnAnalisis)
+                return (false, "El caso no se encuentra en estado EnAnalisis.");
+
+            var instruccionExistente = await _context.InstruccionesTrabajo
+                .AnyAsync(i => i.CasoId == casoId);
+
+            if (instruccionExistente)
+                return (false, "El caso ya tiene una instrucción de trabajo.");
+
+            var perfilesOperarios = await _context.PerfilesEmpleado
+                .Include(p => p.Areas)
+                .Where(p => p.Areas.Any(a => a.Id == caso.AreaId))
+                .ToListAsync();
+
+            if (!perfilesOperarios.Any())
+                return (false, "No existen empleados asociados al área del caso.");
+
+            var usuariosEmpleado = await _userManager.GetUsersInRoleAsync("Empleado");
+
+            var usuariosActivos = usuariosEmpleado
+                .Where(u => u.Activo)
+                .ToList();
+
+            var candidatos = perfilesOperarios
+                .Where(p => usuariosActivos.Any(u => u.Id == p.UserId))
+                .Select(p => p.UserId)
+                .Distinct()
+                .ToList();
+
+            if (!candidatos.Any())
+                return (false, "No existen operarios activos disponibles para el área del caso.");
+
+            var estadosActivosOperario = new[]
+            {
+                EstadoCaso.AsignadaAOperario,
+                EstadoCaso.EnEjecucion,
+                EstadoCaso.TrabajoRealizado,
+                EstadoCaso.EnVerificacion
+            };
+
+            var cargas = await _context.InstruccionesTrabajo
+                .Where(i =>
+                    candidatos.Contains(i.OperarioId) &&
+                    i.Caso != null &&
+                    estadosActivosOperario.Contains(i.Caso.Estado))
+                .GroupBy(i => i.OperarioId)
+                .Select(g => new
+                {
+                    OperarioId = g.Key,
+                    Cantidad = g.Count()
+                })
+                .ToListAsync();
+
+            var operarioSeleccionado = candidatos
+                .Select(id => new
+                {
+                    OperarioId = id,
+                    Cantidad = cargas
+                        .FirstOrDefault(c => c.OperarioId == id)?.Cantidad ?? 0
+                })
+                .OrderBy(x => x.Cantidad)
+                .ThenBy(x => x.OperarioId)
+                .First();
+
+            var instruccion = new InstruccionTrabajo
+            {
+                CasoId = casoId,
+                AnalistaId = analistaId,
+                Instruccion = request.Instruccion.Trim(),
+                OperarioId = operarioSeleccionado.OperarioId,
+                FechaCreacion = DateTime.UtcNow,
+                FechaAsignacion = DateTime.UtcNow
+            };
+
+            _context.InstruccionesTrabajo.Add(instruccion);
+
+            caso.Estado = EstadoCaso.AsignadaAOperario;
+
+            await _context.SaveChangesAsync();
+
+            return (true, "La instrucción fue creada y el caso fue asignado al operario correctamente.");
+        }
+
+
+        public async Task<List<CasoOperarioResponse>> ObtenerCasosDelOperarioAsync(string operarioId)
+        {
+            return await _context.InstruccionesTrabajo
+                .AsNoTracking()
+                .Where(i => i.OperarioId == operarioId)
+                .Include(i => i.Caso)
+                    .ThenInclude(c => c!.Area)
+                .Include(i => i.Caso)
+                    .ThenInclude(c => c!.Aldea)
+                .Where(i => i.Caso != null)
+                .OrderByDescending(i => i.Caso!.FechaRegistro)
+                .Select(i => new CasoOperarioResponse(
+                    i.Caso!.Id,
+                    i.Caso.Codigo,
+                    i.Caso.Area != null ? i.Caso.Area.Nombre : "",
+                    i.Caso.Aldea != null ? i.Caso.Aldea.Nombre : "",
+                    i.Caso.Direccion,
+                    i.Caso.Descripcion,
+                    i.Caso.FechaRegistro,
+                    i.Caso.Estado.ToString()
+                ))
+                .ToListAsync();
+        }
+
+        public async Task<CasoOperarioDetalleResponse?> ObtenerDetalleParaOperarioAsync(int casoId, string operarioId)
+        {
+            return await _context.InstruccionesTrabajo
+                .AsNoTracking()
+                .Where(i =>
+                    i.CasoId == casoId &&
+                    i.OperarioId == operarioId)
+                .Include(i => i.Caso)
+                    .ThenInclude(c => c!.Area)
+                .Include(i => i.Caso)
+                    .ThenInclude(c => c!.Aldea)
+                .Select(i => new CasoOperarioDetalleResponse(
+                    i.Caso!.Id,
+                    i.Caso.Codigo,
+                    i.Caso.Area != null ? i.Caso.Area.Nombre : "",
+                    i.Caso.Aldea != null ? i.Caso.Aldea.Nombre : "",
+                    i.Caso.Direccion,
+                    i.Caso.TelefonoContacto,
+                    i.Caso.Descripcion,
+                    i.Caso.FechaRegistro,
+                    i.Caso.Estado.ToString(),
+                    i.Instruccion
+                ))
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<(bool Exito, string Mensaje)> IniciarTrabajoAsync(int casoId, string operarioId)
+        {
+            var caso = await _context.Casos.FirstOrDefaultAsync(c => c.Id == casoId);
+
+            if (caso == null)
+                return (false, "El caso no existe.");
+
+            var instruccion = await _context.InstruccionesTrabajo
+                .FirstOrDefaultAsync(i =>
+                    i.CasoId == casoId &&
+                    i.OperarioId == operarioId);
+
+            if (instruccion == null)
+                return (false, "El caso no está asignado a este operario.");
+
+            if (caso.Estado != EstadoCaso.AsignadaAOperario)
+            {
+                return (false, "El caso no se encuentra disponible para iniciar el trabajo.");
+
+            }
+
+            caso.Estado = EstadoCaso.EnEjecucion;
+
+            await _context.SaveChangesAsync();
+
+            return (true, "El trabajo fue iniciado correctamente.");
+        }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

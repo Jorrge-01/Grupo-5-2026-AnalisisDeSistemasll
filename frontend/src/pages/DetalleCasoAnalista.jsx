@@ -74,6 +74,7 @@ export default function DetalleCasoAnalista() {
   const [error, setError] = useState('')
   const [procesando, setProcesando] = useState(false)
   const [mensaje, setMensaje] = useState('')
+  const [instruccion, setInstruccion] = useState('')
 
   async function cargarDetalle() {
     try {
@@ -118,6 +119,42 @@ export default function DetalleCasoAnalista() {
       await cargarDetalle()
     } catch (err) {
       setError(err.message || 'No se pudo validar el caso.')
+    } finally {
+      setProcesando(false)
+    }
+  }
+
+  async function crearInstruccion() {
+    if (!instruccion.trim()) {
+      setError('Debe ingresar las instrucciones de trabajo.')
+      return
+    }
+
+    try {
+      setProcesando(true)
+      setError('')
+      setMensaje('')
+
+      const token = localStorage.getItem('token')
+
+      const data = await apiFetch(`/api/Casos/${id}/instruccion`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          instruccion: instruccion.trim(),
+        }),
+      })
+
+      setMensaje(data.mensaje)
+      setInstruccion('')
+
+      await cargarDetalle()
+    } catch (err) {
+      setError(
+        err.message || 'No se pudo crear la instrucción de trabajo.'
+      )
     } finally {
       setProcesando(false)
     }
@@ -423,19 +460,90 @@ export default function DetalleCasoAnalista() {
 
             {/* EN ANÁLISIS */}
             {caso.estado === 'EnAnalisis' && (
-              <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 text-purple-800">
+              <div className="rounded-lg border border-purple-200 bg-purple-50 p-5">
 
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 mb-5">
 
-                  <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0 text-purple-700" />
 
                   <div>
-                    <p className="font-medium">
+                    <p className="font-medium text-purple-800">
                       Caso en análisis
                     </p>
 
+                    <p className="text-sm mt-1 text-purple-700">
+                      El caso fue validado. Ingrese las instrucciones que deberá realizar el operario para atender este caso.
+                    </p>
+                  </div>
+
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="instruccion"
+                    className="block text-sm font-medium text-[var(--color-tinta)] mb-2"
+                  >
+                    Instrucción de trabajo
+                  </label>
+
+                  <textarea
+                    id="instruccion"
+                    value={instruccion}
+                    onChange={(e) => setInstruccion(e.target.value)}
+                    rows={5}
+                    maxLength={2000}
+                    disabled={procesando}
+                    placeholder="Escriba aquí las instrucciones de trabajo..."
+                    className="w-full rounded-lg border border-[var(--color-azul-piedra)]/20 bg-white px-4 py-3 text-sm text-[var(--color-tinta)] outline-none transition focus:border-[var(--color-verde-institucional)] focus:ring-2 focus:ring-[var(--color-verde-institucional)]/20 disabled:bg-gray-100"
+                  />
+
+                  <div className="mt-2 flex items-center justify-between gap-4">
+
+                    <span className="text-xs text-[var(--color-tinta)]/50">
+                      {instruccion.length}/2000 caracteres
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={crearInstruccion}
+                      disabled={procesando || !instruccion.trim()}
+                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-[var(--color-verde-institucional)] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {procesando ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          Asignando...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="h-4 w-4" />
+                          Crear instrucción y asignar operario
+                        </>
+                      )}
+                    </button>
+
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+
+            {/* ASIGNADO A OPERARIO */}
+            {caso.estado === 'AsignadaAOperario' && (
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-indigo-800">
+
+                <div className="flex items-start gap-3">
+
+                  <Clock className="h-5 w-5 mt-0.5 flex-shrink-0" />
+
+                  <div>
+                    <p className="font-medium">
+                      Caso asignado a un operario
+                    </p>
+
                     <p className="text-sm mt-1">
-                      El caso fue validado y se encuentra en la etapa de análisis.
+                      La instrucción de trabajo fue creada y el caso ya fue asignado a un operario para su ejecución.
                     </p>
                   </div>
 
@@ -447,7 +555,6 @@ export default function DetalleCasoAnalista() {
           </div>
 
         </div>
-
       </main>
     </div>
   )

@@ -20,6 +20,8 @@ namespace SistemaMuniAtiende.Api.Data
 
         public DbSet<SolicitudInformacionCaso> SolicitudesInformacionCaso { get; set; }
 
+        public DbSet<InstruccionTrabajo> InstruccionesTrabajo { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -115,6 +117,35 @@ namespace SistemaMuniAtiende.Api.Data
 
             builder.Entity<SolicitudInformacionCaso>()
                 .HasIndex(s => s.AnalistaId);
+
+
+            builder.Entity<InstruccionTrabajo>()
+                .HasOne(i => i.Caso)
+                .WithMany()
+                .HasForeignKey(i => i.CasoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<InstruccionTrabajo>()
+                .HasOne(i => i.Analista)
+                .WithMany()
+                .HasForeignKey(i => i.AnalistaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<InstruccionTrabajo>()
+                .HasOne(i => i.Operario)
+                .WithMany()
+                .HasForeignKey(i => i.OperarioId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<InstruccionTrabajo>()
+                .HasIndex(i => i.CasoId)
+                .IsUnique();
+
+            builder.Entity<InstruccionTrabajo>()
+                .HasIndex(i => i.AnalistaId);
+
+            builder.Entity<InstruccionTrabajo>()
+                .HasIndex(i => i.OperarioId);
         }
     }
 }

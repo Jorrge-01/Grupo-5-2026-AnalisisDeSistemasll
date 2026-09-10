@@ -1,0 +1,467 @@
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import {
+  ArrowLeft,
+  Clock,
+  AlertCircle,
+  RefreshCw,
+  ClipboardList,
+  CheckCircle2,
+} from 'lucide-react'
+
+import HeaderInterno from '../components/HeaderInterno'
+import { apiFetch } from '../lib/api'
+
+function obtenerClaseEstado(estado) {
+  switch (estado) {
+    case 'AsignadaAOperario':
+      return 'bg-indigo-100 text-indigo-800'
+
+    case 'EnEjecucion':
+      return 'bg-cyan-100 text-cyan-800'
+
+    case 'TrabajoRealizado':
+      return 'bg-teal-100 text-teal-800'
+
+    case 'EnVerificacion':
+      return 'bg-yellow-100 text-yellow-800'
+
+    case 'Solucionada':
+      return 'bg-green-100 text-green-800'
+
+    case 'Reabierta':
+      return 'bg-red-100 text-red-800'
+
+    case 'Finalizada':
+      return 'bg-emerald-100 text-emerald-800'
+
+    case 'NoProcedente':
+      return 'bg-gray-100 text-gray-800'
+
+    default:
+      return 'bg-gray-100 text-gray-800'
+  }
+}
+
+function formatearFecha(fecha) {
+  if (!fecha) return '-'
+
+  return new Date(fecha).toLocaleDateString('es-GT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+export default function DetalleCasoOperario() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+
+const [caso, setCaso] = useState(null)
+const [cargando, setCargando] = useState(true)
+const [error, setError] = useState('')
+const [procesando, setProcesando] = useState(false)
+const [mensaje, setMensaje] = useState('')
+
+  async function cargarDetalle() {
+    try {
+      setCargando(true)
+      setError('')
+
+      const token = localStorage.getItem('token')
+
+      const data = await apiFetch(
+        `/api/Casos/${id}/detalle-operario`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      setCaso(data)
+    } catch (err) {
+      setError(
+        err.message ||
+          'No se pudo cargar el detalle del caso.'
+      )
+    } finally {
+      setCargando(false)
+    }
+  }
+
+
+  async function iniciarTrabajo() {
+  try {
+    setProcesando(true)
+    setError('')
+
+    const token = localStorage.getItem('token')
+
+    const data = await apiFetch(
+      `/api/Casos/${id}/iniciar-trabajo`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+
+    setMensaje(data.mensaje)
+
+    await cargarDetalle()
+  } catch (err) {
+    setError(
+      err.message || 'No se pudo iniciar el trabajo.'
+    )
+  } finally {
+    setProcesando(false)
+  }
+}
+
+  useEffect(() => {
+    cargarDetalle()
+  }, [id])
+
+  if (cargando) {
+    return (
+      <div className="min-h-[calc(100vh-73px)] bg-[var(--color-piedra)]">
+        <HeaderInterno titulo="Detalle del caso" />
+
+        <main className="max-w-5xl mx-auto px-6 py-10">
+          <div className="bg-[var(--color-piedra-clara)] rounded-lg border border-[var(--color-azul-piedra)]/15 p-10 text-center">
+
+            <RefreshCw className="h-7 w-7 animate-spin mx-auto text-[var(--color-verde-institucional)]" />
+
+            <p className="text-sm text-[var(--color-tinta)]/60 mt-3">
+              Cargando información del caso...
+            </p>
+
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (error || !caso) {
+    return (
+      <div className="min-h-[calc(100vh-73px)] bg-[var(--color-piedra)]">
+        <HeaderInterno titulo="Detalle del caso" />
+
+        <main className="max-w-5xl mx-auto px-6 py-10">
+
+          <button
+            onClick={() => navigate('/empleado')}
+            className="inline-flex items-center gap-2 text-sm text-[var(--color-verde-institucional)] hover:underline mb-6"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver a mis casos
+          </button>
+
+          <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-5 text-red-800">
+
+            <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+
+            <div>
+              <p className="font-medium">
+                No se pudo cargar el caso
+              </p>
+
+              <p className="text-sm mt-1">
+                {error ||
+                  'El caso no existe o no está asignado a este operario.'}
+              </p>
+            </div>
+
+          </div>
+
+        </main>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-[calc(100vh-73px)] bg-[var(--color-piedra)]">
+
+      <HeaderInterno titulo="Detalle del caso" />
+
+      <main className="max-w-5xl mx-auto px-6 py-10">
+
+        {/* VOLVER */}
+        <Link
+          to="/empleado"
+          className="inline-flex items-center gap-2 text-sm text-[var(--color-verde-institucional)] hover:underline mb-6"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Volver a mis casos
+        </Link>
+
+        <div className="bg-[var(--color-piedra-clara)] rounded-lg border border-[var(--color-azul-piedra)]/15 overflow-hidden">
+
+          {/* ENCABEZADO */}
+          <div className="p-6 border-b border-[var(--color-azul-piedra)]/10">
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+              <div>
+                <p className="text-sm text-[var(--color-tinta)]/60">
+                  Caso
+                </p>
+
+                <h1 className="font-display text-3xl font-semibold text-[var(--color-verde-institucional)] mt-1">
+                  {caso.codigo}
+                </h1>
+              </div>
+
+              <span
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium self-start sm:self-auto ${obtenerClaseEstado(caso.estado)}`}
+              >
+                <Clock className="h-4 w-4" />
+
+                {caso.estado}
+              </span>
+
+            </div>
+
+          </div>
+
+          {/* INFORMACIÓN DEL CASO */}
+          <div className="p-6">
+
+            <h2 className="font-display text-xl font-semibold text-[var(--color-verde-institucional)] mb-5">
+              Información del caso
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              {/* ÁREA */}
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-tinta)]/50">
+                  Área
+                </p>
+
+                <p className="text-sm text-[var(--color-tinta)] mt-1">
+                  {caso.area || '-'}
+                </p>
+              </div>
+
+              {/* ALDEA */}
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-tinta)]/50">
+                  Aldea
+                </p>
+
+                <p className="text-sm text-[var(--color-tinta)] mt-1">
+                  {caso.aldea || '-'}
+                </p>
+              </div>
+
+              {/* DIRECCIÓN */}
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-tinta)]/50">
+                  Dirección
+                </p>
+
+                <p className="text-sm text-[var(--color-tinta)] mt-1">
+                  {caso.direccion || '-'}
+                </p>
+              </div>
+
+              {/* TELÉFONO */}
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-tinta)]/50">
+                  Teléfono de contacto
+                </p>
+
+                <p className="text-sm text-[var(--color-tinta)] mt-1">
+                  {caso.telefonoContacto || '-'}
+                </p>
+              </div>
+
+              {/* FECHA */}
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-tinta)]/50">
+                  Fecha de registro
+                </p>
+
+                <p className="text-sm text-[var(--color-tinta)] mt-1">
+                  {formatearFecha(caso.fechaRegistro)}
+                </p>
+              </div>
+
+            </div>
+
+            {/* DESCRIPCIÓN */}
+            <div className="mt-8">
+
+              <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-tinta)]/50">
+                Descripción del caso
+              </p>
+
+              <div className="mt-2 rounded-lg border border-[var(--color-azul-piedra)]/10 bg-white/50 p-4">
+
+                <p className="text-sm leading-6 text-[var(--color-tinta)] whitespace-pre-wrap">
+                  {caso.descripcion || '-'}
+                </p>
+
+              </div>
+
+            </div>
+
+            {/* INSTRUCCIÓN DE TRABAJO */}
+            <div className="mt-8">
+
+              <div className="flex items-center gap-2 mb-2">
+
+                <ClipboardList className="h-4 w-4 text-[var(--color-verde-institucional)]" />
+
+                <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-tinta)]/50">
+                  Instrucción de trabajo
+                </p>
+
+              </div>
+
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-5">
+
+                <p className="text-sm leading-6 text-indigo-900 whitespace-pre-wrap">
+                  {caso.instruccion || '-'}
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* ACCIONES */}
+          <div className="border-t border-[var(--color-azul-piedra)]/10 p-6">
+
+            <h2 className="font-display text-xl font-semibold text-[var(--color-verde-institucional)] mb-2">
+              Acciones
+            </h2>
+
+            <p className="text-sm text-[var(--color-tinta)]/60 mb-5">
+              Las acciones disponibles dependerán del estado actual del caso.
+            </p>
+
+            {mensaje && (
+            <div className="mb-5 rounded-lg border border-green-200 bg-green-50 p-4 text-green-800">
+                <div className="flex items-start gap-3">
+
+                <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0" />
+
+                <div>
+                    <p className="font-medium">
+                    Operación realizada
+                    </p>
+
+                    <p className="text-sm mt-1">
+                    {mensaje}
+                    </p>
+                </div>
+
+                </div>
+            </div>
+            )}
+
+            {/* ASIGNADA A OPERARIO */}
+            {caso.estado === 'AsignadaAOperario' && (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+
+                <div className="flex-1 rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-indigo-800">
+
+                  <div className="flex items-start gap-3">
+
+                    <Clock className="h-5 w-5 mt-0.5 flex-shrink-0" />
+
+                    <div>
+                      <p className="font-medium">
+                        Caso pendiente de ejecución
+                      </p>
+
+                      <p className="text-sm mt-1">
+                        Revisa la instrucción de trabajo antes de iniciar la atención del caso.
+                      </p>
+                    </div>
+
+                  </div>
+
+                </div>
+
+                <button
+                    type="button"
+                    onClick={iniciarTrabajo}
+                    disabled={procesando}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-[var(--color-verde-institucional)] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                    {procesando ? (
+                        <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Iniciando...
+                        </>
+                    ) : (
+                        <>
+                        <Clock className="h-4 w-4" />
+                        Iniciar trabajo
+                        </>
+                    )}
+                </button>
+
+              </div>
+            )}
+
+            {/* EN EJECUCIÓN */}
+            {caso.estado === 'EnEjecucion' && (
+              <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-cyan-800">
+
+                <div className="flex items-start gap-3">
+
+                  <Clock className="h-5 w-5 mt-0.5 flex-shrink-0" />
+
+                  <div>
+                    <p className="font-medium">
+                      Trabajo en ejecución
+                    </p>
+
+                    <p className="text-sm mt-1">
+                      El caso se encuentra actualmente en ejecución.
+                    </p>
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+
+            {/* TRABAJO REALIZADO */}
+            {caso.estado === 'TrabajoRealizado' && (
+              <div className="rounded-lg border border-teal-200 bg-teal-50 p-4 text-teal-800">
+
+                <div className="flex items-start gap-3">
+
+                  <Clock className="h-5 w-5 mt-0.5 flex-shrink-0" />
+
+                  <div>
+                    <p className="font-medium">
+                      Trabajo realizado
+                    </p>
+
+                    <p className="text-sm mt-1">
+                      El trabajo fue marcado como realizado y está pendiente de verificación.
+                    </p>
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+  )
+}
