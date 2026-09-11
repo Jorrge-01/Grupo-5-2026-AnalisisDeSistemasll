@@ -41,7 +41,10 @@
         string TelefonoContacto,
         string Descripcion,
         DateTime FechaRegistro,
-        string Estado
+        string Estado,
+        string? Instruccion,
+        string? ResultadoTrabajo,
+        DateTime? FechaTrabajo
     );
 
     public record SolicitarInformacionRequest(string Mensaje);
@@ -71,4 +74,7 @@
         string Estado,
         string Instruccion
     );
+
+    public record RegistrarTrabajoRequest(string Resultado);
+    public record SolicitarCorreccionRequest(string Correccion);
 }

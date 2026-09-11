@@ -21,6 +21,8 @@ namespace SistemaMuniAtiende.Api.Data
         public DbSet<SolicitudInformacionCaso> SolicitudesInformacionCaso { get; set; }
 
         public DbSet<InstruccionTrabajo> InstruccionesTrabajo { get; set; }
+        public DbSet<TrabajoCaso> TrabajosCaso { get; set; }
+        public DbSet<SolicitudCorreccionTrabajo> SolicitudesCorreccionTrabajo { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -45,9 +47,9 @@ namespace SistemaMuniAtiende.Api.Data
                 .WithMany();
 
             builder.Entity<PerfilVecino>()
-    .HasOne(p => p.Aldea)
-    .WithMany()
-    .HasForeignKey(p => p.AldeaId);
+                .HasOne(p => p.Aldea)
+                .WithMany()
+                .HasForeignKey(p => p.AldeaId);
 
             builder.Entity<Caso>()
                 .HasOne(c => c.Vecino)
@@ -146,6 +148,53 @@ namespace SistemaMuniAtiende.Api.Data
 
             builder.Entity<InstruccionTrabajo>()
                 .HasIndex(i => i.OperarioId);
+
+
+            builder.Entity<TrabajoCaso>()
+                .HasOne(t => t.Caso)
+                .WithMany()
+                .HasForeignKey(t => t.CasoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<TrabajoCaso>()
+                .HasOne(t => t.Operario)
+                .WithMany()
+                .HasForeignKey(t => t.OperarioId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<TrabajoCaso>()
+                .HasIndex(t => t.CasoId);
+
+            builder.Entity<TrabajoCaso>()
+                .HasIndex(t => t.OperarioId);
+
+
+            builder.Entity<SolicitudCorreccionTrabajo>()
+                .HasOne(s => s.Caso)
+                .WithMany()
+                .HasForeignKey(s => s.CasoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<SolicitudCorreccionTrabajo>()
+                .HasOne(s => s.Analista)
+                .WithMany()
+                .HasForeignKey(s => s.AnalistaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<SolicitudCorreccionTrabajo>()
+                .HasOne(s => s.Operario)
+                .WithMany()
+                .HasForeignKey(s => s.OperarioId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<SolicitudCorreccionTrabajo>()
+                .HasIndex(s => s.CasoId);
+
+            builder.Entity<SolicitudCorreccionTrabajo>()
+                .HasIndex(s => s.AnalistaId);
+
+            builder.Entity<SolicitudCorreccionTrabajo>()
+                .HasIndex(s => s.OperarioId);
         }
     }
 }

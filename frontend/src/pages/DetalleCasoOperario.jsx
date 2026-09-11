@@ -57,11 +57,14 @@ export default function DetalleCasoOperario() {
   const { id } = useParams()
   const navigate = useNavigate()
 
-const [caso, setCaso] = useState(null)
-const [cargando, setCargando] = useState(true)
-const [error, setError] = useState('')
-const [procesando, setProcesando] = useState(false)
-const [mensaje, setMensaje] = useState('')
+  const [caso, setCaso] = useState(null)
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState('')
+  const [procesando, setProcesando] = useState(false)
+  const [mensaje, setMensaje] = useState('')
+
+  const [resultadoTrabajo, setResultadoTrabajo] = useState('')
+  const [procesandoTrabajo, setProcesandoTrabajo] = useState(false)
 
   async function cargarDetalle() {
     try {
@@ -90,35 +93,81 @@ const [mensaje, setMensaje] = useState('')
     }
   }
 
-
   async function iniciarTrabajo() {
-  try {
-    setProcesando(true)
-    setError('')
+    try {
+      setProcesando(true)
+      setError('')
+      setMensaje('')
 
-    const token = localStorage.getItem('token')
+      const token = localStorage.getItem('token')
 
-    const data = await apiFetch(
-      `/api/Casos/${id}/iniciar-trabajo`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    )
+      const data = await apiFetch(
+        `/api/Casos/${id}/iniciar-trabajo`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
 
-    setMensaje(data.mensaje)
+      setMensaje(data.mensaje)
 
-    await cargarDetalle()
-  } catch (err) {
-    setError(
-      err.message || 'No se pudo iniciar el trabajo.'
-    )
-  } finally {
-    setProcesando(false)
+      await cargarDetalle()
+    } catch (err) {
+      setError(
+        err.message || 'No se pudo iniciar el trabajo.'
+      )
+    } finally {
+      setProcesando(false)
+    }
   }
-}
+
+  async function registrarTrabajo() {
+    if (!resultadoTrabajo.trim()) {
+      setError('Debe describir el trabajo realizado.')
+      return
+    }
+
+    if (resultadoTrabajo.length > 2000) {
+      setError(
+        'El resultado no puede superar los 2000 caracteres.'
+      )
+      return
+    }
+
+    try {
+      setProcesandoTrabajo(true)
+      setError('')
+      setMensaje('')
+
+      const token = localStorage.getItem('token')
+
+      const data = await apiFetch(
+        `/api/Casos/${id}/registrar-trabajo`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            resultado: resultadoTrabajo,
+          }),
+        }
+      )
+
+      setMensaje(data.mensaje)
+      setResultadoTrabajo('')
+
+      await cargarDetalle()
+    } catch (err) {
+      setError(
+        err.message || 'No se pudo registrar el trabajo.'
+      )
+    } finally {
+      setProcesandoTrabajo(false)
+    }
+  }
 
   useEffect(() => {
     cargarDetalle()
@@ -345,24 +394,50 @@ const [mensaje, setMensaje] = useState('')
               Las acciones disponibles dependerán del estado actual del caso.
             </p>
 
+            {/* MENSAJE DE ÉXITO */}
             {mensaje && (
-            <div className="mb-5 rounded-lg border border-green-200 bg-green-50 p-4 text-green-800">
+              <div className="mb-5 rounded-lg border border-green-200 bg-green-50 p-4 text-green-800">
+
                 <div className="flex items-start gap-3">
 
-                <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0" />
 
-                <div>
+                  <div>
                     <p className="font-medium">
-                    Operación realizada
+                      Operación realizada
                     </p>
 
                     <p className="text-sm mt-1">
-                    {mensaje}
+                      {mensaje}
                     </p>
-                </div>
+                  </div>
 
                 </div>
-            </div>
+
+              </div>
+            )}
+
+            {/* MENSAJE DE ERROR */}
+            {error && (
+              <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+
+                <div className="flex items-start gap-3">
+
+                  <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+
+                  <div>
+                    <p className="font-medium">
+                      No se pudo completar la operación
+                    </p>
+
+                    <p className="text-sm mt-1">
+                      {error}
+                    </p>
+                  </div>
+
+                </div>
+
+              </div>
             )}
 
             {/* ASIGNADA A OPERARIO */}
@@ -390,22 +465,22 @@ const [mensaje, setMensaje] = useState('')
                 </div>
 
                 <button
-                    type="button"
-                    onClick={iniciarTrabajo}
-                    disabled={procesando}
-                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-[var(--color-verde-institucional)] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                    {procesando ? (
-                        <>
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        Iniciando...
-                        </>
-                    ) : (
-                        <>
-                        <Clock className="h-4 w-4" />
-                        Iniciar trabajo
-                        </>
-                    )}
+                  type="button"
+                  onClick={iniciarTrabajo}
+                  disabled={procesando}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-[var(--color-verde-institucional)] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {procesando ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Iniciando...
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="h-4 w-4" />
+                      Iniciar trabajo
+                    </>
+                  )}
                 </button>
 
               </div>
@@ -413,20 +488,84 @@ const [mensaje, setMensaje] = useState('')
 
             {/* EN EJECUCIÓN */}
             {caso.estado === 'EnEjecucion' && (
-              <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-cyan-800">
+              <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-5 text-cyan-800">
 
                 <div className="flex items-start gap-3">
 
                   <Clock className="h-5 w-5 mt-0.5 flex-shrink-0" />
 
-                  <div>
+                  <div className="flex-1">
+
                     <p className="font-medium">
                       Trabajo en ejecución
                     </p>
 
-                    <p className="text-sm mt-1">
-                      El caso se encuentra actualmente en ejecución.
+                    <p className="text-sm mt-1 mb-5">
+                      Registra a continuación el trabajo que realizaste para atender este caso.
                     </p>
+
+                    {/* RESULTADO DEL TRABAJO */}
+                    <div>
+
+                      <label
+                        htmlFor="resultadoTrabajo"
+                        className="block text-sm font-medium text-cyan-900 mb-2"
+                      >
+                        Descripción del trabajo realizado
+                      </label>
+
+                      <textarea
+                        id="resultadoTrabajo"
+                        value={resultadoTrabajo}
+                        onChange={(e) => setResultadoTrabajo(e.target.value)}
+                        maxLength={2000}
+                        rows={6}
+                        placeholder="Describe las acciones realizadas para atender el caso..."
+                        className="w-full rounded-lg border border-cyan-200 bg-white px-4 py-3 text-sm text-[var(--color-tinta)] placeholder:text-[var(--color-tinta)]/40 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-cyan-300 resize-y"
+                        disabled={procesandoTrabajo}
+                      />
+
+                      <div className="flex justify-between items-center mt-2">
+
+                        <p className="text-xs text-cyan-700">
+                          Describe de forma clara las acciones realizadas.
+                        </p>
+
+                        <p className="text-xs text-cyan-700">
+                          {resultadoTrabajo.length}/2000
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                    {/* BOTÓN GUARDAR */}
+                    <div className="flex justify-end mt-4">
+
+                      <button
+                        type="button"
+                        onClick={registrarTrabajo}
+                        disabled={
+                          procesandoTrabajo ||
+                          !resultadoTrabajo.trim()
+                        }
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-[var(--color-verde-institucional)] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {procesandoTrabajo ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                            Guardando...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="h-4 w-4" />
+                            Guardar trabajo realizado
+                          </>
+                        )}
+                      </button>
+
+                    </div>
+
                   </div>
 
                 </div>
@@ -457,11 +596,35 @@ const [mensaje, setMensaje] = useState('')
               </div>
             )}
 
+            {/* EN VERIFICACIÓN */}
+            {caso.estado === 'EnVerificacion' && (
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
+
+                <div className="flex items-start gap-3">
+
+                  <Clock className="h-5 w-5 mt-0.5 flex-shrink-0" />
+
+                  <div>
+                    <p className="font-medium">
+                      Trabajo enviado a verificación
+                    </p>
+
+                    <p className="text-sm mt-1">
+                      El trabajo fue registrado correctamente y el caso está pendiente de verificación por parte del analista.
+                    </p>
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+
           </div>
 
         </div>
 
       </main>
+
     </div>
   )
 }

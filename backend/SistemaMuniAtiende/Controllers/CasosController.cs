@@ -321,7 +321,113 @@ namespace SistemaMuniAtiende.Controllers
                 estado = EstadoCaso.EnEjecucion.ToString()
             });
         }
+
+        [HttpPost("{id}/registrar-trabajo")]
+        [Authorize(Roles = "Empleado")]
+        public async Task<IActionResult> RegistrarTrabajo(int id, RegistrarTrabajoRequest request)
+        {
+            var operarioId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (operarioId == null)
+            {
+                return Unauthorized(new
+                {
+                    mensaje = "No se pudo identificar al operario."
+                });
+            }
+
+            var resultado = await _casoService.RegistrarTrabajoAsync(
+                id,
+                operarioId,
+                request);
+
+            if (!resultado.Exito)
+            {
+                return BadRequest(new
+                {
+                    mensaje = resultado.Mensaje
+                });
+            }
+
+            return Ok(new
+            {
+                mensaje = resultado.Mensaje,
+                estado = EstadoCaso.EnVerificacion.ToString()
+            });
+        }
+
+        [HttpPost("{id}/aprobar-trabajo")]
+        [Authorize(Roles = "Analista")]
+        public async Task<IActionResult> AprobarTrabajo(int id)
+        {
+            var analistaId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (analistaId == null)
+            {
+                return Unauthorized(new
+                {
+                    mensaje = "No se pudo identificar al analista."
+                });
+            }
+
+            var resultado = await _casoService.AprobarTrabajoAsync(
+                id,
+                analistaId);
+
+            if (!resultado.Exito)
+            {
+                return BadRequest(new
+                {
+                    mensaje = resultado.Mensaje
+                });
+            }
+
+            return Ok(new
+            {
+                mensaje = resultado.Mensaje,
+                estado = EstadoCaso.Solucionada.ToString()
+            });
+        }
+
+        [HttpPost("{id}/solicitar-correccion")]
+        [Authorize(Roles = "Analista")]
+        public async Task<IActionResult> SolicitarCorreccion(int id, SolicitarCorreccionRequest request)
+        {
+            var analistaId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+
+            if (analistaId == null)
+            {
+                return Unauthorized(new
+                {
+                    mensaje = "No se pudo identificar al analista."
+                });
+            }
+
+            var resultado = await _casoService.SolicitarCorreccionAsync(
+                id,
+                analistaId,
+                request);
+
+            if (!resultado.Exito)
+            {
+                return BadRequest(new
+                {
+                    mensaje = resultado.Mensaje
+                });
+            }
+
+            return Ok(new
+            {
+                mensaje = resultado.Mensaje,
+                estado = EstadoCaso.EnEjecucion.ToString()
+            });
+        }
     }
 }
+
+
+
+
 
 

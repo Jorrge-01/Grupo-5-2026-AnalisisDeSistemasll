@@ -167,7 +167,9 @@ namespace SistemaMuniAtiende.Services
         {
             return await _context.Casos
                 .AsNoTracking()
-                .Where(c => c.Id == casoId && c.AnalistaId == analistaId)
+                .Where(c =>
+                    c.Id == casoId &&
+                    c.AnalistaId == analistaId)
                 .Include(c => c.Area)
                 .Include(c => c.Aldea)
                 .Select(c => new CasoAnalistaDetalleResponse(
@@ -179,10 +181,28 @@ namespace SistemaMuniAtiende.Services
                     c.TelefonoContacto,
                     c.Descripcion,
                     c.FechaRegistro,
-                    c.Estado.ToString()
+                    c.Estado.ToString(),
+
+                    _context.InstruccionesTrabajo
+                        .Where(i => i.CasoId == c.Id)
+                        .Select(i => i.Instruccion)
+                        .FirstOrDefault(),
+
+                    _context.TrabajosCaso
+                        .Where(t => t.CasoId == c.Id)
+                        .OrderByDescending(t => t.FechaRegistro)
+                        .Select(t => t.Resultado)
+                        .FirstOrDefault(),
+
+                    _context.TrabajosCaso
+                        .Where(t => t.CasoId == c.Id)
+                        .OrderByDescending(t => t.FechaRegistro)
+                        .Select(t => (DateTime?)t.FechaRegistro)
+                        .FirstOrDefault()
                 ))
                 .FirstOrDefaultAsync();
         }
+
 
         public async Task<(bool Exito, string Mensaje)> ValidarCasoAsync(int casoId, string analistaId)
         {
@@ -504,8 +524,182 @@ namespace SistemaMuniAtiende.Services
 
             return (true, "El trabajo fue iniciado correctamente.");
         }
+
+        public async Task<(bool Exito, string Mensaje)> RegistrarTrabajoAsync(int casoId, string operarioId, RegistrarTrabajoRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Resultado))
+            {
+                return (false, "Debe indicar el resultado del trabajo realizado.");
+            }
+
+            if (request.Resultado.Length > 2000)
+            {
+                return (false, "El resultado no puede superar los 2000 caracteres.");
+            }
+
+            var caso = await _context.Casos.FirstOrDefaultAsync(c => c.Id == casoId);
+
+            if (caso == null)
+            {
+                return (false, "El caso no existe.");
+            }
+
+            var instruccion = await _context.InstruccionesTrabajo
+                .FirstOrDefaultAsync(i =>
+                    i.CasoId == casoId &&
+                    i.OperarioId == operarioId);
+
+            if (instruccion == null)
+            {
+                return (false, "El caso no está asignado a este operario.");
+            }
+
+            if (caso.Estado != EstadoCaso.EnEjecucion)
+            {
+                return (false, "El caso no se encuentra en ejecución.");
+            }
+
+            
+            var trabajo = new TrabajoCaso
+            {
+                CasoId = casoId,
+                OperarioId = operarioId,
+                Resultado = request.Resultado.Trim(),
+                FechaRegistro = DateTime.UtcNow
+            };
+
+            _context.TrabajosCaso.Add(trabajo);
+
+            caso.Estado = EstadoCaso.EnVerificacion;
+
+            await _context.SaveChangesAsync();
+
+            return (true, "El trabajo fue registrado correctamente y el caso pasó a verificación.");
+        }
+
+        public async Task<(bool Exito, string Mensaje)> AprobarTrabajoAsync(int casoId, string analistaId)
+        {
+            var caso = await _context.Casos
+                .FirstOrDefaultAsync(c =>
+                    c.Id == casoId &&
+                    c.AnalistaId == analistaId);
+
+            if (caso == null)
+            {
+                return (false, "El caso no existe o no está asignado a este analista.");
+            }
+
+            if (caso.Estado != EstadoCaso.EnVerificacion)
+            {
+                return (false, "El caso no se encuentra en estado EnVerificacion.");
+            }
+
+            var trabajo = await _context.TrabajosCaso
+                .Where(t => t.CasoId == casoId)
+                .OrderByDescending(t => t.FechaRegistro)
+                .FirstOrDefaultAsync();
+
+            if (trabajo == null)
+            {
+                return (false, "El caso no tiene un trabajo registrado para verificar.");
+            }
+
+            caso.Estado = EstadoCaso.Solucionada;
+
+            await _context.SaveChangesAsync();
+
+            return (true, "El trabajo fue verificado correctamente y el caso quedó solucionado.");
+        }
+
+        public async Task<(bool Exito, string Mensaje)> SolicitarCorreccionAsync(int casoId, string analistaId, SolicitarCorreccionRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Correccion))
+            {
+                return (false, "Debe indicar qué debe corregir el operario.");
+            }
+
+            if (request.Correccion.Length > 2000)
+            {
+                return (false, "La descripción de la corrección no puede superar los 2000 caracteres.");
+            }
+
+            var caso = await _context.Casos
+                .FirstOrDefaultAsync(c =>
+                    c.Id == casoId &&
+                    c.AnalistaId == analistaId);
+
+            if (caso == null)
+            {
+                return (false, "El caso no existe o no está asignado a este analista.");
+            }
+
+            if (caso.Estado != EstadoCaso.EnVerificacion)
+            {
+                return (false, "El caso no se encuentra en estado EnVerificacion.");
+            }
+
+            var trabajo = await _context.TrabajosCaso
+                .Where(t => t.CasoId == casoId)
+                .OrderByDescending(t => t.FechaRegistro)
+                .FirstOrDefaultAsync();
+
+            if (trabajo == null)
+            {
+                return (false, "El caso no tiene un trabajo registrado para solicitar corrección.");
+            }
+
+            var instruccion = await _context.InstruccionesTrabajo.FirstOrDefaultAsync(i => i.CasoId == casoId);
+
+            if (instruccion == null)
+            {
+                return (false, "El caso no tiene una instrucción de trabajo asignada.");
+            }
+
+
+            var solicitud = new SolicitudCorreccionTrabajo
+            {
+                CasoId = casoId,
+                AnalistaId = analistaId,
+                OperarioId = instruccion.OperarioId,
+                Correccion = request.Correccion.Trim(),
+                FechaSolicitud = DateTime.UtcNow
+            };
+
+            _context.SolicitudesCorreccionTrabajo.Add(solicitud);
+
+            caso.Estado = EstadoCaso.EnEjecucion;
+
+            await _context.SaveChangesAsync();
+
+            return (true, "Se solicitó una corrección al operario y el caso regresó a ejecución.");
+        }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

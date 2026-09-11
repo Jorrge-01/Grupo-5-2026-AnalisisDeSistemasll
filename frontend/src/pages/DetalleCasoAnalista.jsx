@@ -7,6 +7,7 @@ import {
   AlertCircle,
   RefreshCw,
   MessageSquare,
+  ClipboardList,
 } from 'lucide-react'
 
 import HeaderInterno from '../components/HeaderInterno'
@@ -74,7 +75,10 @@ export default function DetalleCasoAnalista() {
   const [error, setError] = useState('')
   const [procesando, setProcesando] = useState(false)
   const [mensaje, setMensaje] = useState('')
+
   const [instruccion, setInstruccion] = useState('')
+  const [correccion, setCorreccion] = useState('')
+  const [mostrarCorreccion, setMostrarCorreccion] = useState(false)
 
   async function cargarDetalle() {
     try {
@@ -160,6 +164,78 @@ export default function DetalleCasoAnalista() {
     }
   }
 
+  async function aprobarTrabajo() {
+    try {
+      setProcesando(true)
+      setError('')
+      setMensaje('')
+
+      const token = localStorage.getItem('token')
+
+      const data = await apiFetch(
+        `/api/Casos/${id}/aprobar-trabajo`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+
+      setMensaje(data.mensaje)
+      setMostrarCorreccion(false)
+      setCorreccion('')
+
+      await cargarDetalle()
+    } catch (err) {
+      setError(
+        err.message || 'No se pudo aprobar el trabajo.'
+      )
+    } finally {
+      setProcesando(false)
+    }
+  }
+
+  async function solicitarCorreccion() {
+    if (!correccion.trim()) {
+      setError('Debe indicar qué debe corregir el operario.')
+      return
+    }
+
+    try {
+      setProcesando(true)
+      setError('')
+      setMensaje('')
+
+      const token = localStorage.getItem('token')
+
+      const data = await apiFetch(
+        `/api/Casos/${id}/solicitar-correccion`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            correccion: correccion.trim(),
+          }),
+        }
+      )
+
+      setMensaje(data.mensaje)
+      setCorreccion('')
+      setMostrarCorreccion(false)
+
+      await cargarDetalle()
+    } catch (err) {
+      setError(
+        err.message || 'No se pudo solicitar la corrección.'
+      )
+    } finally {
+      setProcesando(false)
+    }
+  }
+
   useEffect(() => {
     cargarDetalle()
   }, [id])
@@ -171,11 +247,13 @@ export default function DetalleCasoAnalista() {
 
         <main className="max-w-5xl mx-auto px-6 py-10">
           <div className="bg-[var(--color-piedra-clara)] rounded-lg border border-[var(--color-azul-piedra)]/15 p-10 text-center">
+
             <RefreshCw className="h-7 w-7 animate-spin mx-auto text-[var(--color-verde-institucional)]" />
 
             <p className="text-sm text-[var(--color-tinta)]/60 mt-3">
               Cargando información del caso...
             </p>
+
           </div>
         </main>
       </div>
@@ -188,6 +266,7 @@ export default function DetalleCasoAnalista() {
         <HeaderInterno titulo="Detalle del caso" />
 
         <main className="max-w-5xl mx-auto px-6 py-10">
+
           <button
             onClick={() => navigate('/analista')}
             className="inline-flex items-center gap-2 text-sm text-[var(--color-verde-institucional)] hover:underline mb-6"
@@ -197,6 +276,7 @@ export default function DetalleCasoAnalista() {
           </button>
 
           <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-5 text-red-800">
+
             <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
 
             <div>
@@ -209,7 +289,9 @@ export default function DetalleCasoAnalista() {
                   'El caso no existe o no está asignado a este analista.'}
               </p>
             </div>
+
           </div>
+
         </main>
       </div>
     )
@@ -217,9 +299,11 @@ export default function DetalleCasoAnalista() {
 
   return (
     <div className="min-h-[calc(100vh-73px)] bg-[var(--color-piedra)]">
+
       <HeaderInterno titulo="Detalle del caso" />
 
       <main className="max-w-5xl mx-auto px-6 py-10">
+
         <Link
           to="/analista"
           className="inline-flex items-center gap-2 text-sm text-[var(--color-verde-institucional)] hover:underline mb-6"
@@ -232,6 +316,7 @@ export default function DetalleCasoAnalista() {
 
           {/* ENCABEZADO */}
           <div className="p-6 border-b border-[var(--color-azul-piedra)]/10">
+
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 
               <div>
@@ -247,16 +332,12 @@ export default function DetalleCasoAnalista() {
               <span
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium self-start sm:self-auto ${obtenerClaseEstado(caso.estado)}`}
               >
-                {caso.estado === 'EnAnalisis' ? (
-                  <CheckCircle2 className="h-4 w-4" />
-                ) : (
-                  <Clock className="h-4 w-4" />
-                )}
-
+                <Clock className="h-4 w-4" />
                 {caso.estado}
               </span>
 
             </div>
+
           </div>
 
           {/* INFORMACIÓN DEL CASO */}
@@ -328,12 +409,84 @@ export default function DetalleCasoAnalista() {
               </p>
 
               <div className="mt-2 rounded-lg border border-[var(--color-azul-piedra)]/10 bg-white/50 p-4">
+
                 <p className="text-sm leading-6 text-[var(--color-tinta)] whitespace-pre-wrap">
                   {caso.descripcion || '-'}
                 </p>
+
               </div>
 
             </div>
+
+            {/* VERIFICACIÓN DEL TRABAJO */}
+            {caso.estado === 'EnVerificacion' && (
+              <div className="mt-8">
+
+                <h2 className="font-display text-xl font-semibold text-[var(--color-verde-institucional)] mb-5">
+                  Verificación del trabajo
+                </h2>
+
+                {/* INSTRUCCIÓN */}
+                <div className="mb-5">
+
+                  <div className="flex items-center gap-2 mb-2">
+
+                    <ClipboardList className="h-4 w-4 text-indigo-700" />
+
+                    <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-tinta)]/50">
+                      Instrucción de trabajo
+                    </p>
+
+                  </div>
+
+                  <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-5">
+
+                    <p className="text-sm leading-6 text-indigo-900 whitespace-pre-wrap">
+                      {caso.instruccion || '-'}
+                    </p>
+
+                  </div>
+
+                </div>
+
+                {/* RESULTADO */}
+                <div>
+
+                  <div className="flex items-center gap-2 mb-2">
+
+                    <CheckCircle2 className="h-4 w-4 text-teal-700" />
+
+                    <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-tinta)]/50">
+                      Trabajo realizado por el operario
+                    </p>
+
+                  </div>
+
+                  <div className="rounded-lg border border-teal-200 bg-teal-50 p-5">
+
+                    <p className="text-sm leading-6 text-teal-900 whitespace-pre-wrap">
+                      {caso.resultadoTrabajo || '-'}
+                    </p>
+
+                  </div>
+
+                </div>
+
+                {/* FECHA */}
+                <div className="mt-5">
+
+                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-tinta)]/50">
+                    Fecha del trabajo
+                  </p>
+
+                  <p className="text-sm text-[var(--color-tinta)] mt-1">
+                    {formatearFecha(caso.fechaTrabajo)}
+                  </p>
+
+                </div>
+
+              </div>
+            )}
 
           </div>
 
@@ -351,6 +504,7 @@ export default function DetalleCasoAnalista() {
             {/* MENSAJE DE ÉXITO */}
             {mensaje && (
               <div className="mb-5 rounded-lg border border-green-200 bg-green-50 p-4 text-green-800">
+
                 <div className="flex items-start gap-3">
 
                   <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0" />
@@ -366,12 +520,14 @@ export default function DetalleCasoAnalista() {
                   </div>
 
                 </div>
+
               </div>
             )}
 
             {/* MENSAJE DE ERROR */}
             {error && (
               <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+
                 <div className="flex items-start gap-3">
 
                   <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
@@ -387,10 +543,11 @@ export default function DetalleCasoAnalista() {
                   </div>
 
                 </div>
+
               </div>
             )}
 
-            {/* CASO ASIGNADO */}
+            {/* ASIGNADA */}
             {caso.estado === 'Asignada' && (
               <div className="flex flex-col sm:flex-row gap-3">
 
@@ -419,7 +576,7 @@ export default function DetalleCasoAnalista() {
               </div>
             )}
 
-            {/* CASO EN VALIDACIÓN */}
+            {/* EN VALIDACIÓN */}
             {caso.estado === 'EnValidacion' && (
               <button
                 type="button"
@@ -479,6 +636,7 @@ export default function DetalleCasoAnalista() {
                 </div>
 
                 <div>
+
                   <label
                     htmlFor="instruccion"
                     className="block text-sm font-medium text-[var(--color-tinta)] mb-2"
@@ -552,10 +710,178 @@ export default function DetalleCasoAnalista() {
               </div>
             )}
 
+            {/* EN VERIFICACIÓN */}
+            {caso.estado === 'EnVerificacion' && (
+              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-5">
+
+                <div className="flex items-start gap-3 mb-5">
+
+                  <Clock className="h-5 w-5 mt-0.5 flex-shrink-0 text-yellow-700" />
+
+                  <div>
+                    <p className="font-medium text-yellow-800">
+                      Caso pendiente de verificación
+                    </p>
+
+                    <p className="text-sm mt-1 text-yellow-700">
+                      El operario registró el trabajo realizado. Revise la información anterior y seleccione una acción.
+                    </p>
+                  </div>
+
+                </div>
+
+                {!mostrarCorreccion ? (
+                  <div className="flex flex-col sm:flex-row gap-3">
+
+                    <button
+                      type="button"
+                      onClick={aprobarTrabajo}
+                      disabled={procesando}
+                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                    >
+                      {procesando ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4" />
+                      )}
+
+                      {procesando
+                        ? 'Procesando...'
+                        : 'Trabajo correcto'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMostrarCorreccion(true)
+                        setError('')
+                        setMensaje('')
+                      }}
+                      disabled={procesando}
+                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md border border-yellow-500 text-yellow-800 text-sm font-medium hover:bg-yellow-100 transition-colors disabled:opacity-50"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+
+                      Solicitar corrección
+                    </button>
+
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-yellow-300 bg-white p-5">
+
+                    <div className="flex items-start gap-3 mb-4">
+
+                      <MessageSquare className="h-5 w-5 mt-0.5 text-yellow-700 flex-shrink-0" />
+
+                      <div>
+                        <p className="font-medium text-yellow-800">
+                          Solicitar corrección
+                        </p>
+
+                        <p className="text-sm mt-1 text-yellow-700">
+                          Indique al operario qué debe corregir o realizar nuevamente.
+                        </p>
+                      </div>
+
+                    </div>
+
+                    <label
+                      htmlFor="correccion"
+                      className="block text-sm font-medium text-[var(--color-tinta)] mb-2"
+                    >
+                      Descripción de la corrección
+                    </label>
+
+                    <textarea
+                      id="correccion"
+                      value={correccion}
+                      onChange={(e) => setCorreccion(e.target.value)}
+                      rows={5}
+                      maxLength={2000}
+                      disabled={procesando}
+                      placeholder="Escriba aquí las indicaciones para el operario..."
+                      className="w-full rounded-lg border border-yellow-300 bg-white px-4 py-3 text-sm text-[var(--color-tinta)] outline-none transition focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500/20 disabled:bg-gray-100"
+                    />
+
+                    <div className="mt-2 flex items-center justify-between gap-4">
+
+                      <span className="text-xs text-[var(--color-tinta)]/50">
+                        {correccion.length}/2000 caracteres
+                      </span>
+
+                      <div className="flex gap-3">
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMostrarCorreccion(false)
+                            setCorreccion('')
+                            setError('')
+                          }}
+                          disabled={procesando}
+                          className="inline-flex items-center justify-center px-5 py-2.5 rounded-md border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        >
+                          Cancelar
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={solicitarCorreccion}
+                          disabled={procesando || !correccion.trim()}
+                          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-yellow-600 text-white text-sm font-medium hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {procesando ? (
+                            <>
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                              Enviando...
+                            </>
+                          ) : (
+                            <>
+                              <MessageSquare className="h-4 w-4" />
+                              Solicitar corrección
+                            </>
+                          )}
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+                )}
+
+              </div>
+            )}
+
+            {/* EN EJECUCIÓN */}
+            {caso.estado === 'EnEjecucion' && (
+              <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4 text-cyan-800">
+
+                <div className="flex items-start gap-3">
+
+                  <Clock className="h-5 w-5 mt-0.5 flex-shrink-0" />
+
+                  <div>
+                    <p className="font-medium">
+                      Caso nuevamente en ejecución
+                    </p>
+
+                    <p className="text-sm mt-1">
+                      Se solicitó una corrección al operario. El caso volverá a verificación cuando registre nuevamente el trabajo realizado.
+                    </p>
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+
           </div>
 
         </div>
+
       </main>
+
     </div>
   )
 }

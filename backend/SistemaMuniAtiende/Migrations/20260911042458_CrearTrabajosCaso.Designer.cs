@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SistemaMuniAtiende.Api.Data;
@@ -11,9 +12,11 @@ using SistemaMuniAtiende.Api.Data;
 namespace SistemaMuniAtiende.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260911042458_CrearTrabajosCaso")]
+    partial class CrearTrabajosCaso
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -547,44 +550,6 @@ namespace SistemaMuniAtiende.Migrations
                     b.ToTable("PerfilesVecino");
                 });
 
-            modelBuilder.Entity("SistemaMuniAtiende.Models.SolicitudCorreccionTrabajo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AnalistaId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("CasoId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Correccion")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<DateTime>("FechaSolicitud")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("OperarioId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AnalistaId");
-
-                    b.HasIndex("CasoId");
-
-                    b.HasIndex("OperarioId");
-
-                    b.ToTable("SolicitudesCorreccionTrabajo");
-                });
-
             modelBuilder.Entity("SistemaMuniAtiende.Models.SolicitudInformacionCaso", b =>
                 {
                     b.Property<int>("Id")
@@ -654,7 +619,8 @@ namespace SistemaMuniAtiende.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CasoId");
+                    b.HasIndex("CasoId")
+                        .IsUnique();
 
                     b.HasIndex("OperarioId");
 
@@ -825,33 +791,6 @@ namespace SistemaMuniAtiende.Migrations
                     b.Navigation("Aldea");
 
                     b.Navigation("Usuario");
-                });
-
-            modelBuilder.Entity("SistemaMuniAtiende.Models.SolicitudCorreccionTrabajo", b =>
-                {
-                    b.HasOne("SistemaMuniAtiende.Models.ApplicationUser", "Analista")
-                        .WithMany()
-                        .HasForeignKey("AnalistaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SistemaMuniAtiende.Models.Caso", "Caso")
-                        .WithMany()
-                        .HasForeignKey("CasoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SistemaMuniAtiende.Models.ApplicationUser", "Operario")
-                        .WithMany()
-                        .HasForeignKey("OperarioId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Analista");
-
-                    b.Navigation("Caso");
-
-                    b.Navigation("Operario");
                 });
 
             modelBuilder.Entity("SistemaMuniAtiende.Models.SolicitudInformacionCaso", b =>
