@@ -72,7 +72,8 @@
         string Descripcion,
         DateTime FechaRegistro,
         string Estado,
-        string Instruccion
+        string Instruccion,
+        string? Correccion
     );
 
     public record RegistrarTrabajoRequest(string Resultado);

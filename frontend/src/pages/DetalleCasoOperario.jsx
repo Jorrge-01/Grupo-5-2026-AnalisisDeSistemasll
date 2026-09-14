@@ -7,6 +7,7 @@ import {
   RefreshCw,
   ClipboardList,
   CheckCircle2,
+  MessageSquare,
 } from 'lucide-react'
 
 import HeaderInterno from '../components/HeaderInterno'
@@ -380,6 +381,37 @@ export default function DetalleCasoOperario() {
               </div>
 
             </div>
+
+            {/* CORRECCIÓN SOLICITADA */}
+            {caso.estado === 'EnEjecucion' && caso.correccion && (
+              <div className="mt-6">
+
+                <div className="flex items-center gap-2 mb-2">
+
+                  <MessageSquare className="h-4 w-4 text-amber-700" />
+
+                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-tinta)]/50">
+                    Corrección solicitada por el analista
+                  </p>
+
+                </div>
+
+                <div className="rounded-lg border border-amber-300 bg-amber-50 p-5">
+
+                  <div className="flex items-start gap-3">
+
+                    <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0 text-amber-700" />
+
+                    <p className="text-sm leading-6 text-amber-900 whitespace-pre-wrap">
+                      {caso.correccion}
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+            )}
 
           </div>
 

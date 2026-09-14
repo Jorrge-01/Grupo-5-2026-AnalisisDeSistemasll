@@ -492,10 +492,19 @@ namespace SistemaMuniAtiende.Services
                     i.Caso.Descripcion,
                     i.Caso.FechaRegistro,
                     i.Caso.Estado.ToString(),
-                    i.Instruccion
+                    i.Instruccion,
+
+                    _context.SolicitudesCorreccionTrabajo
+                        .Where(s =>
+                            s.CasoId == i.CasoId &&
+                            s.OperarioId == operarioId)
+                        .OrderByDescending(s => s.FechaSolicitud)
+                        .Select(s => s.Correccion)
+                        .FirstOrDefault()
                 ))
                 .FirstOrDefaultAsync();
         }
+
 
         public async Task<(bool Exito, string Mensaje)> IniciarTrabajoAsync(int casoId, string operarioId)
         {
