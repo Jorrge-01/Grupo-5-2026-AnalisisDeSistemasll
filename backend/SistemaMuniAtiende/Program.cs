@@ -6,13 +6,15 @@ using SistemaMuniAtiende.Api.Data;
 using SistemaMuniAtiende.Models;
 using SistemaMuniAtiende.Services;
 using System.Text;
-
+using Azure.Storage.Blobs;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
            .AddInterceptors(sp.GetRequiredService<BitacoraInterceptor>()));
+builder.Services.AddSingleton(new BlobServiceClient(builder.Configuration["Azure:StorageConnectionString"]));
+builder.Services.AddScoped<BlobStorageService>();
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {

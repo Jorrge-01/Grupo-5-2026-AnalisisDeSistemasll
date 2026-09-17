@@ -11,12 +11,15 @@ namespace SistemaMuniAtiende.Services
         private readonly AppDbContext _context;
         private readonly BolsonCasosService _bolsonCasosService;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly BlobStorageService _blobStorageService;
 
-        public CasoService(AppDbContext context, BolsonCasosService bolsonCasosService, UserManager<ApplicationUser> userManager)
+
+        public CasoService(AppDbContext context, BolsonCasosService bolsonCasosService, UserManager<ApplicationUser> userManager, BlobStorageService blobStorageService)
         {
             _context = context;
             _bolsonCasosService = bolsonCasosService;
             _userManager = userManager;
+            _blobStorageService = blobStorageService;
         }
 
         public async Task<(bool Exito, string Mensaje, CasoCreadoResponse? Caso)> RegistrarQuejaAsync(
@@ -83,19 +86,19 @@ namespace SistemaMuniAtiende.Services
             await _context.SaveChangesAsync();
 
             await _bolsonCasosService.AsignarCasoAsync(caso);
-
             var respuesta = new CasoCreadoResponse(
-                caso.Id,
-                caso.Codigo,
-                "Queja",
-                area.Nombre,
-                aldea.Nombre,
-                caso.Direccion,
-                caso.TelefonoContacto,
-                caso.Descripcion,
-                caso.FechaRegistro,
-                caso.Estado.ToString()
-            );
+    caso.Id,
+    caso.Codigo,
+    "Queja",
+    area.Nombre,
+    aldea.Nombre,
+    caso.Direccion,
+    caso.TelefonoContacto,
+    caso.Descripcion,
+    caso.FechaRegistro,
+    caso.Estado.ToString(),
+    new List<ArchivoResponse>()
+);
 
             return (true, "La queja fue registrada correctamente.", respuesta);
         }
@@ -128,6 +131,11 @@ namespace SistemaMuniAtiende.Services
             if (caso == null)
                 return null;
 
+            var archivos = await _context.ArchivosCaso
+                .Where(a => a.CasoId == caso.Id)
+                .Select(a => new ArchivoResponse(a.Id, a.NombreArchivo, a.RutaArchivo, a.TipoContenido))
+                .ToListAsync();
+
             return new CasoCreadoResponse(
                 caso.Id,
                 caso.Codigo,
@@ -138,10 +146,10 @@ namespace SistemaMuniAtiende.Services
                 caso.TelefonoContacto,
                 caso.Descripcion,
                 caso.FechaRegistro,
-                caso.Estado.ToString()
+                caso.Estado.ToString(),
+                archivos
             );
         }
-
         public async Task<List<CasoAnalistaResponse>> ObtenerCasosDelAnalistaAsync(string analistaId)
         {
             return await _context.Casos
@@ -198,11 +206,15 @@ namespace SistemaMuniAtiende.Services
                         .Where(t => t.CasoId == c.Id)
                         .OrderByDescending(t => t.FechaRegistro)
                         .Select(t => (DateTime?)t.FechaRegistro)
-                        .FirstOrDefault()
+                        .FirstOrDefault(),
+
+                    _context.ArchivosCaso
+                        .Where(a => a.CasoId == c.Id)
+                        .Select(a => new ArchivoResponse(a.Id, a.NombreArchivo, a.RutaArchivo, a.TipoContenido))
+                        .ToList()
                 ))
                 .FirstOrDefaultAsync();
         }
-
 
         public async Task<(bool Exito, string Mensaje)> ValidarCasoAsync(int casoId, string analistaId)
         {
@@ -682,6 +694,78 @@ namespace SistemaMuniAtiende.Services
 
             return (true, "Se solicitó una corrección al operario y el caso regresó a ejecución.");
         }
+
+        public async Task<(bool Exito, string Mensaje)> SubirEvidenciaAsync(int casoId, string vecinoId, List<IFormFile> archivos)
+        {
+            var caso = await _context.Casos.FirstOrDefaultAsync(c => c.Id == casoId && c.VecinoId == vecinoId);
+            if (caso == null)
+                return (false, "El caso no existe o no pertenece al vecino.");
+
+            if (archivos == null || archivos.Count == 0)
+                return (false, "No se recibió ningún archivo.");
+
+            if (archivos.Count > 3)
+                return (false, "Solo puedes subir un máximo de 2 fotos y 1 documento.");
+
+            var fotosExistentes = await _context.ArchivosCaso.CountAsync(a => a.CasoId == casoId && a.TipoContenido.StartsWith("image/"));
+            var documentosExistentes = await _context.ArchivosCaso.CountAsync(a => a.CasoId == casoId && a.TipoContenido == "application/pdf");
+
+            foreach (var archivo in archivos)
+            {
+                if (archivo.Length > 5 * 1024 * 1024)
+                    return (false, $"El archivo {archivo.FileName} excede el tamaño máximo de 5 MB.");
+
+                var extension = Path.GetExtension(archivo.FileName).ToLower();
+                var esImagen = extension is ".png" or ".jpg" or ".jpeg";
+                var esPdf = extension == ".pdf";
+
+                if (!esImagen && !esPdf)
+                    return (false, $"El archivo {archivo.FileName} tiene un formato no permitido. Usa PNG, JPG o PDF.");
+
+                if (esImagen && fotosExistentes >= 2)
+                    return (false, "Ya se alcanzó el máximo de 2 fotos para este caso.");
+
+                if (esPdf && documentosExistentes >= 1)
+                    return (false, "Ya se alcanzó el máximo de 1 documento para este caso.");
+
+                var url = await _blobStorageService.SubirArchivoAsync(archivo, casoId);
+
+                _context.ArchivosCaso.Add(new ArchivoCaso
+                {
+                    CasoId = casoId,
+                    NombreArchivo = archivo.FileName,
+                    RutaArchivo = url,
+                    TipoContenido = archivo.ContentType,
+                    TamanoBytes = archivo.Length
+                });
+
+                if (esImagen) fotosExistentes++;
+                if (esPdf) documentosExistentes++;
+            }
+
+            await _context.SaveChangesAsync();
+            return (true, "Evidencia subida correctamente.");
+        }
+
+
+        public async Task<List<CasoVecinoResponse>> ObtenerCasosDelVecinoAsync(string vecinoId)
+        {
+            return await _context.Casos
+                .AsNoTracking()
+                .Where(c => c.VecinoId == vecinoId)
+                .Include(c => c.Area)
+                .OrderByDescending(c => c.FechaRegistro)
+                .Select(c => new CasoVecinoResponse(
+                    c.Id,
+                    c.Codigo,
+                    c.Area != null ? c.Area.Nombre : "",
+                    c.Descripcion,
+                    c.FechaRegistro,
+                    c.Estado.ToString()
+                ))
+                .ToListAsync();
+        }
+
     }
 }
 

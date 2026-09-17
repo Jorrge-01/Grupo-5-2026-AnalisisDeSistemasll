@@ -423,6 +423,31 @@ namespace SistemaMuniAtiende.Controllers
                 estado = EstadoCaso.EnEjecucion.ToString()
             });
         }
+
+
+        [HttpPost("{id}/evidencia")]
+        [Authorize(Roles = "Vecino")]
+        public async Task<IActionResult> SubirEvidencia(int id, [FromForm] List<IFormFile> archivos)
+        {
+            var vecinoId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (vecinoId == null) return Unauthorized(new { mensaje = "No se pudo identificar al usuario." });
+
+            var resultado = await _casoService.SubirEvidenciaAsync(id, vecinoId, archivos);
+
+            if (!resultado.Exito) return BadRequest(new { mensaje = resultado.Mensaje });
+            return Ok(new { mensaje = resultado.Mensaje });
+        }
+
+        [HttpGet("mis-casos-vecino")]
+        [Authorize(Roles = "Vecino")]
+        public async Task<IActionResult> ObtenerMisCasosVecino()
+        {
+            var vecinoId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (vecinoId == null) return Unauthorized(new { mensaje = "No se pudo identificar al usuario." });
+
+            var casos = await _casoService.ObtenerCasosDelVecinoAsync(vecinoId);
+            return Ok(casos);
+        }
     }
 }
 

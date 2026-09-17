@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import HeaderInterno from '../components/HeaderInterno'
 import ModalCargando from '../components/ModalCargando'
 import ModalExito from '../components/ModalExito'
-import { apiFetch } from '../lib/api'
+import { apiFetch, API_BASE_URL } from '../lib/api'
+import SubidaEvidencia from '../components/SubidaEvidencia'
 
 export default function RegistrarCaso() {
   const navigate = useNavigate()
@@ -23,6 +24,9 @@ export default function RegistrarCaso() {
     telefonoContacto: '',
     descripcion: '',
   })
+
+  const [fotos, setFotos] = useState([])       // array de { file, preview }
+  const [documento, setDocumento] = useState(null) // un solo File o null
 
   useEffect(() => {
     async function cargarDatos() {
@@ -63,6 +67,25 @@ export default function RegistrarCaso() {
     setForm((p) => ({ ...p, [name]: value }))
   }
 
+  async function subirEvidencia(casoId, token) {
+    if (fotos.length === 0 && !documento) return
+
+    const formData = new FormData()
+    fotos.forEach((f) => formData.append('archivos', f.file))
+    if (documento) formData.append('archivos', documento)
+
+    const res = await fetch(`${API_BASE_URL}/api/Casos/${casoId}/evidencia`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    })
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      throw new Error(data?.mensaje || 'No se pudo subir la evidencia.')
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
@@ -92,6 +115,13 @@ export default function RegistrarCaso() {
           descripcion: form.descripcion.trim(),
         }),
       })
+
+      try {
+        await subirEvidencia(data.id, token)
+      } catch (errEvidencia) {
+        // El caso ya se registró; si falla solo la evidencia, avisamos pero no bloqueamos el éxito general
+        console.error('Error al subir evidencia:', errEvidencia)
+      }
 
       setCodigoCaso(data.codigo)
       setExito(`Tu queja fue registrada correctamente con el código ${data.codigo}.`)
@@ -235,6 +265,13 @@ export default function RegistrarCaso() {
                   {form.descripcion.length}/2000 caracteres
                 </p>
               </div>
+
+              <SubidaEvidencia
+                fotos={fotos}
+                setFotos={setFotos}
+                documento={documento}
+                setDocumento={setDocumento}
+              />
             </>
           )}
 

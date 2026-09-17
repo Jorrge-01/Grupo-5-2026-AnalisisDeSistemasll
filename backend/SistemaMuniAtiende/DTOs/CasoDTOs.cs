@@ -9,17 +9,18 @@
     );
 
     public record CasoCreadoResponse(
-        int Id,
-        string Codigo,
-        string Tipo,
-        string Area,
-        string Aldea,
-        string Direccion,
-        string TelefonoContacto,
-        string Descripcion,
-        DateTime FechaRegistro,
-        string Estado
-    );
+    int Id,
+    string Codigo,
+    string Tipo,
+    string Area,
+    string Aldea,
+    string Direccion,
+    string TelefonoContacto,
+    string Descripcion,
+    DateTime FechaRegistro,
+    string Estado,
+    List<ArchivoResponse> Archivos
+);
 
     public record CasoAnalistaResponse(
         int Id,
@@ -31,6 +32,13 @@
         DateTime FechaRegistro,
         string Estado
     );
+
+    public record ArchivoResponse(
+    int Id,
+    string NombreArchivo,
+    string RutaArchivo,
+    string TipoContenido
+);
 
     public record CasoAnalistaDetalleResponse(
         int Id,
@@ -44,7 +52,8 @@
         string Estado,
         string? Instruccion,
         string? ResultadoTrabajo,
-        DateTime? FechaTrabajo
+        DateTime? FechaTrabajo,
+        List<ArchivoResponse> Archivos
     );
 
     public record SolicitarInformacionRequest(string Mensaje);
@@ -61,6 +70,17 @@
         DateTime FechaRegistro,
         string Estado
     );
+
+    public record CasoVecinoResponse(
+    int Id,
+    string Codigo,
+    string Area,
+    string Descripcion,
+    DateTime FechaRegistro,
+    string Estado
+);
+
+
 
     public record CasoOperarioDetalleResponse(
         int Id,

@@ -26,6 +26,7 @@ import Analista from './pages/Analista'
 import DetalleCasoAnalista from './pages/DetalleCasoAnalista'
 import Operario from './pages/Operario'
 import DetalleCasoOperario from './pages/DetalleCasoOperario'
+import MisCasos from './pages/MisCasos'
 
 function Inicio() {
   return (
@@ -207,7 +208,14 @@ function App() {
               </RutaProtegida>
             }
           />
-
+<Route
+  path="/vecino/casos"
+  element={
+    <RutaProtegida rolRequerido="Vecino">
+      <MisCasos />
+    </RutaProtegida>
+  }
+/>
         </Routes>
       </Layout>
     </BrowserRouter>
