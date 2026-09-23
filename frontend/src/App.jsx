@@ -39,8 +39,6 @@ function Inicio() {
   )
 }
 
-// Rutas que NO deben mostrar el header/footer públicos,
-// porque ya tienen su propio encabezado (paneles internos autenticados).
 const RUTAS_SIN_LAYOUT_PUBLICO = ['/admin', '/vecino', '/analista', '/empleado']
 
 function Layout({ children }) {

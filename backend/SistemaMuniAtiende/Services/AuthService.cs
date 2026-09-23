@@ -454,17 +454,31 @@ namespace SistemaMuniAtiende.Services
 
         private string GenerarPasswordTemporal()
         {
-            const string caracteres = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+            const string mayusculas = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+            const string minusculas = "abcdefghijkmnopqrstuvwxyz";
+            const string numeros = "23456789";
+            const string especiales = "!@#$%*?";
+            const string todos = mayusculas + minusculas + numeros + especiales;
 
             var random = new Random();
 
-            return new string(
-                Enumerable.Range(0, 10)
-                    .Select(_ => caracteres[random.Next(caracteres.Length)])
-                    .ToArray()
-            );
-        }
+            var obligatorios = new[]
+            {
+        mayusculas[random.Next(mayusculas.Length)],
+        minusculas[random.Next(minusculas.Length)],
+        numeros[random.Next(numeros.Length)],
+        especiales[random.Next(especiales.Length)]
+    };
 
+            var resto = Enumerable.Range(0, 6)
+                .Select(_ => todos[random.Next(todos.Length)]);
+
+            var caracteres = obligatorios.Concat(resto)
+                .OrderBy(_ => random.Next())
+                .ToArray();
+
+            return new string(caracteres);
+        }
 
         private string GenerarToken(ApplicationUser user, IList<string> roles)
         {

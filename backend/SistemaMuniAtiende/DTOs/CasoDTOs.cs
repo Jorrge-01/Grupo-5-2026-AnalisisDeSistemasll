@@ -93,9 +93,9 @@
         DateTime FechaRegistro,
         string Estado,
         string Instruccion,
-        string? Correccion
+        string? Correccion,
+        List<ArchivoResponse> Archivos
     );
-
     public record RegistrarTrabajoRequest(string Resultado);
     public record SolicitarCorreccionRequest(string Correccion);
 }

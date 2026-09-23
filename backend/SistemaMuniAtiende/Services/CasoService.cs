@@ -512,7 +512,12 @@ namespace SistemaMuniAtiende.Services
                             s.OperarioId == operarioId)
                         .OrderByDescending(s => s.FechaSolicitud)
                         .Select(s => s.Correccion)
-                        .FirstOrDefault()
+                        .FirstOrDefault(),
+
+                    _context.ArchivosCaso
+                        .Where(a => a.CasoId == i.CasoId)
+                        .Select(a => new ArchivoResponse(a.Id, a.NombreArchivo, a.RutaArchivo, a.TipoContenido))
+                        .ToList()
                 ))
                 .FirstOrDefaultAsync();
         }
@@ -712,6 +717,9 @@ namespace SistemaMuniAtiende.Services
 
             foreach (var archivo in archivos)
             {
+                if (archivo.Length == 0)
+                    return (false, $"El archivo {archivo.FileName} está vacío.");
+
                 if (archivo.Length > 5 * 1024 * 1024)
                     return (false, $"El archivo {archivo.FileName} excede el tamaño máximo de 5 MB.");
 
@@ -722,18 +730,22 @@ namespace SistemaMuniAtiende.Services
                 if (!esImagen && !esPdf)
                     return (false, $"El archivo {archivo.FileName} tiene un formato no permitido. Usa PNG, JPG o PDF.");
 
+                if (!await ValidarFirmaArchivoAsync(archivo, esPdf))
+                    return (false, $"El archivo {archivo.FileName} no es un {(esPdf ? "PDF" : "imagen")} válido.");
+
                 if (esImagen && fotosExistentes >= 2)
                     return (false, "Ya se alcanzó el máximo de 2 fotos para este caso.");
 
                 if (esPdf && documentosExistentes >= 1)
                     return (false, "Ya se alcanzó el máximo de 1 documento para este caso.");
 
+                var nombreSaneado = SanearNombreArchivo(archivo.FileName);
                 var url = await _blobStorageService.SubirArchivoAsync(archivo, casoId);
 
                 _context.ArchivosCaso.Add(new ArchivoCaso
                 {
                     CasoId = casoId,
-                    NombreArchivo = archivo.FileName,
+                    NombreArchivo = nombreSaneado,
                     RutaArchivo = url,
                     TipoContenido = archivo.ContentType,
                     TamanoBytes = archivo.Length
@@ -745,6 +757,32 @@ namespace SistemaMuniAtiende.Services
 
             await _context.SaveChangesAsync();
             return (true, "Evidencia subida correctamente.");
+        }
+
+        private static async Task<bool> ValidarFirmaArchivoAsync(IFormFile archivo, bool esPdf)
+        {
+            var buffer = new byte[8];
+            using (var stream = archivo.OpenReadStream())
+            {
+                var leidos = await stream.ReadAsync(buffer, 0, buffer.Length);
+                if (leidos < 4) return false;
+            }
+
+            if (esPdf)
+                return buffer[0] == 0x25 && buffer[1] == 0x50 && buffer[2] == 0x44 && buffer[3] == 0x46;
+
+            var esPng = buffer[0] == 0x89 && buffer[1] == 0x50 && buffer[2] == 0x4E && buffer[3] == 0x47;
+            var esJpg = buffer[0] == 0xFF && buffer[1] == 0xD8 && buffer[2] == 0xFF;
+
+            return esPng || esJpg;
+        }
+
+        private static string SanearNombreArchivo(string nombreOriginal)
+        {
+            var nombre = Path.GetFileName(nombreOriginal);
+            var caracteresInvalidos = Path.GetInvalidFileNameChars();
+            var limpio = new string(nombre.Where(c => !caracteresInvalidos.Contains(c)).ToArray());
+            return limpio.Length > 255 ? limpio.Substring(0, 255) : limpio;
         }
 
 
