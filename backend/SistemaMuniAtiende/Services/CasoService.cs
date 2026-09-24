@@ -12,14 +12,74 @@ namespace SistemaMuniAtiende.Services
         private readonly BolsonCasosService _bolsonCasosService;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly BlobStorageService _blobStorageService;
+        private readonly IEmailService _emailService;
 
 
-        public CasoService(AppDbContext context, BolsonCasosService bolsonCasosService, UserManager<ApplicationUser> userManager, BlobStorageService blobStorageService)
+
+        private readonly PlantillaCorreoService _plantillaCorreo;
+
+        public CasoService(AppDbContext context, BolsonCasosService bolsonCasosService, UserManager<ApplicationUser> userManager, BlobStorageService blobStorageService, PlantillaCorreoService plantillaCorreo)
         {
             _context = context;
             _bolsonCasosService = bolsonCasosService;
             _userManager = userManager;
             _blobStorageService = blobStorageService;
+            _plantillaCorreo = plantillaCorreo;
+        }
+
+        private async Task EnviarCorreoCasoAsync(string email, string nombreDestinatario, string asunto, string titulo, string mensaje, (string Etiqueta, string Valor)? destacado = null)
+        {
+            var bloqueDestacado = destacado.HasValue
+                ? $"""
+                   <table role="presentation" cellpadding="0" cellspacing="0" style="background-color:#EEF1F5; border-radius:8px; width:100%; margin-bottom:24px;">
+                     <tr>
+                       <td style="padding:16px 20px;">
+                         <p style="margin:0; color:#475569; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;">{destacado.Value.Etiqueta}</p>
+                         <p style="margin:8px 0 0; color:#0F172A; font-size:17px; font-weight:600; line-height:1.4;">{destacado.Value.Valor}</p>
+                       </td>
+                     </tr>
+                   </table>
+                   """
+                : "";
+
+            await _emailService.EnviarAsync(
+                email,
+                asunto,
+                $"""
+                <!DOCTYPE html>
+                <html lang="es">
+                <body style="margin:0; padding:0; background-color:#EEF1F5; font-family:'Segoe UI', Arial, sans-serif;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#EEF1F5; padding:32px 0;">
+                    <tr>
+                      <td align="center">
+                        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background-color:#F8FAFC; border-radius:10px; overflow:hidden;">
+                          <tr>
+                            <td style="background-color:#0F172A; padding:28px 32px;" align="center">
+                              <div style="width:48px; height:48px; border-radius:50%; background-color:#0D9488; display:inline-block; line-height:48px; text-align:center; color:#F8FAFC; font-size:20px; font-weight:600;">M</div>
+                              <p style="margin:12px 0 0; color:#F8FAFC; font-size:15px; letter-spacing:0.5px; text-transform:uppercase;">Municipalidad</p>
+                            </td>
+                          </tr>
+                          <tr><td style="height:6px; background-color:#0D9488;"></td></tr>
+                          <tr>
+                            <td style="padding:36px 32px;">
+                              <h1 style="margin:0 0 16px; color:#0F172A; font-size:22px;">Hola {nombreDestinatario},</h1>
+                              <p style="margin:0 0 16px; color:#334155; font-size:15px; line-height:1.6;">{titulo}</p>
+                              {bloqueDestacado}
+                              <p style="margin:0; color:#334155; font-size:15px; line-height:1.6;">{mensaje}</p>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:20px 32px; background-color:#0F172A;" align="center">
+                              <p style="margin:0; color:#94A3B8; font-size:12px;">Este es un correo automático, por favor no respondas a este mensaje.</p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </body>
+                </html>
+                """);
         }
 
         public async Task<(bool Exito, string Mensaje, CasoCreadoResponse? Caso)> RegistrarQuejaAsync(
@@ -86,19 +146,40 @@ namespace SistemaMuniAtiende.Services
             await _context.SaveChangesAsync();
 
             await _bolsonCasosService.AsignarCasoAsync(caso);
+
+            var vecino = await _userManager.FindByIdAsync(vecinoId);
+            if (vecino?.Email != null)
+            {
+                try
+                {
+                    await _plantillaCorreo.EnviarCorreoCasoAsync(
+                          vecino.Email,
+                          vecino.Nombre,
+                          $"Caso registrado - {caso.Codigo} - Sistema QRDS",
+                          "Hemos recibido tu caso correctamente.",
+                          "Puedes dar seguimiento al estado de tu caso desde tu Portal Municipal, en la sección \"Mis casos\". Te avisaremos por este medio cuando haya novedades.",
+                          ("Código del caso", caso.Codigo)
+                      );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"No se pudo enviar el correo de confirmación del caso: {ex.Message}");
+                }
+            }
+
             var respuesta = new CasoCreadoResponse(
-    caso.Id,
-    caso.Codigo,
-    "Queja",
-    area.Nombre,
-    aldea.Nombre,
-    caso.Direccion,
-    caso.TelefonoContacto,
-    caso.Descripcion,
-    caso.FechaRegistro,
-    caso.Estado.ToString(),
-    new List<ArchivoResponse>()
-);
+                caso.Id,
+                caso.Codigo,
+                "Queja",
+                area.Nombre,
+                aldea.Nombre,
+                caso.Direccion,
+                caso.TelefonoContacto,
+                caso.Descripcion,
+                caso.FechaRegistro,
+                caso.Estado.ToString(),
+                new List<ArchivoResponse>()
+            );
 
             return (true, "La queja fue registrada correctamente.", respuesta);
         }
@@ -232,7 +313,6 @@ namespace SistemaMuniAtiende.Services
                 return (false, "El caso no se encuentra disponible para validación.");
             }
 
-
             if (caso.Estado == EstadoCaso.EnValidacion)
             {
                 var solicitud = await _context.SolicitudesInformacionCaso
@@ -248,7 +328,6 @@ namespace SistemaMuniAtiende.Services
                 }
             }
 
-
             caso.Estado = EstadoCaso.EnAnalisis;
 
             await _context.SaveChangesAsync();
@@ -256,21 +335,13 @@ namespace SistemaMuniAtiende.Services
             return (true, "El caso fue validado correctamente y pasó a análisis.");
         }
 
-
-
         public async Task<(bool Exito, string Mensaje)> SolicitarInformacionAsync(int casoId, string analistaId, SolicitarInformacionRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Mensaje))
-            {
                 return (false, "Debe indicar qué información necesita del vecino.");
 
-            }
-
             if (request.Mensaje.Length > 2000)
-            {
                 return (false, "La solicitud no puede superar los 2000 caracteres.");
-
-            }
 
             var caso = await _context.Casos
                 .FirstOrDefaultAsync(c =>
@@ -278,16 +349,10 @@ namespace SistemaMuniAtiende.Services
                     c.AnalistaId == analistaId);
 
             if (caso == null)
-            {
                 return (false, "El caso no existe o no está asignado a este analista.");
 
-            }
-
             if (caso.Estado != EstadoCaso.Asignada)
-            {
                 return (false, "El caso no se encuentra disponible para solicitar información.");
-
-            }
 
             var solicitudPendiente = await _context.SolicitudesInformacionCaso
                 .AnyAsync(s =>
@@ -295,10 +360,7 @@ namespace SistemaMuniAtiende.Services
                     s.Estado == EstadoSolicitudInformacion.Pendiente);
 
             if (solicitudPendiente)
-            {
                 return (false, "El caso ya tiene una solicitud de información pendiente.");
-
-            }
 
             var solicitud = new SolicitudInformacionCaso
             {
@@ -315,8 +377,27 @@ namespace SistemaMuniAtiende.Services
 
             await _context.SaveChangesAsync();
 
-            return (true, "Se solicitó información al vecino correctamente.");
+            var vecinoInfo = await _userManager.FindByIdAsync(caso.VecinoId);
+            if (vecinoInfo?.Email != null)
+            {
+                try
+                {
+                                await _plantillaCorreo.EnviarCorreoCasoAsync(
+                    vecinoInfo.Email,
+                    vecinoInfo.Nombre,
+                    $"Se necesita más información - {caso.Codigo} - Sistema QRDS",
+                    $"Necesitamos información adicional para continuar con tu caso {caso.Codigo}:",
+                    "Ingresa a \"Mis casos\" en tu Portal Municipal para responder.",
+                    ("Mensaje del analista", request.Mensaje.Trim())
+                );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"No se pudo enviar el correo de solicitud de información: {ex.Message}");
+                }
+            }
 
+            return (true, "Se solicitó información al vecino correctamente.");
         }
 
         public async Task<(bool Exito, string Mensaje)> ResponderInformacionAsync(int casoId, string vecinoId, ResponderInformacionRequest request)
@@ -455,9 +536,28 @@ namespace SistemaMuniAtiende.Services
 
             await _context.SaveChangesAsync();
 
+            var operario = await _userManager.FindByIdAsync(operarioSeleccionado.OperarioId);
+            if (operario?.Email != null)
+            {
+                try
+                {
+                    await _plantillaCorreo.EnviarCorreoCasoAsync(
+                         operario.Email,
+                         operario.Nombre,
+                         $"Nuevo trabajo asignado - {caso.Codigo} - Sistema QRDS",
+                         "Se te ha asignado un caso para atender en campo.",
+                         "Ingresa al Portal Municipal para ver el detalle completo e iniciar el trabajo.",
+                         ("Código del caso", caso.Codigo)
+                     );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"No se pudo enviar el correo de asignación al operario: {ex.Message}");
+                }
+            }
+
             return (true, "La instrucción fue creada y el caso fue asignado al operario correctamente.");
         }
-
 
         public async Task<List<CasoOperarioResponse>> ObtenerCasosDelOperarioAsync(string operarioId)
         {
@@ -522,7 +622,6 @@ namespace SistemaMuniAtiende.Services
                 .FirstOrDefaultAsync();
         }
 
-
         public async Task<(bool Exito, string Mensaje)> IniciarTrabajoAsync(int casoId, string operarioId)
         {
             var caso = await _context.Casos.FirstOrDefaultAsync(c => c.Id == casoId);
@@ -541,7 +640,6 @@ namespace SistemaMuniAtiende.Services
             if (caso.Estado != EstadoCaso.AsignadaAOperario)
             {
                 return (false, "El caso no se encuentra disponible para iniciar el trabajo.");
-
             }
 
             caso.Estado = EstadoCaso.EnEjecucion;
@@ -554,21 +652,15 @@ namespace SistemaMuniAtiende.Services
         public async Task<(bool Exito, string Mensaje)> RegistrarTrabajoAsync(int casoId, string operarioId, RegistrarTrabajoRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Resultado))
-            {
                 return (false, "Debe indicar el resultado del trabajo realizado.");
-            }
 
             if (request.Resultado.Length > 2000)
-            {
                 return (false, "El resultado no puede superar los 2000 caracteres.");
-            }
 
             var caso = await _context.Casos.FirstOrDefaultAsync(c => c.Id == casoId);
 
             if (caso == null)
-            {
                 return (false, "El caso no existe.");
-            }
 
             var instruccion = await _context.InstruccionesTrabajo
                 .FirstOrDefaultAsync(i =>
@@ -576,16 +668,11 @@ namespace SistemaMuniAtiende.Services
                     i.OperarioId == operarioId);
 
             if (instruccion == null)
-            {
                 return (false, "El caso no está asignado a este operario.");
-            }
 
             if (caso.Estado != EstadoCaso.EnEjecucion)
-            {
                 return (false, "El caso no se encuentra en ejecución.");
-            }
 
-            
             var trabajo = new TrabajoCaso
             {
                 CasoId = casoId,
@@ -611,14 +698,10 @@ namespace SistemaMuniAtiende.Services
                     c.AnalistaId == analistaId);
 
             if (caso == null)
-            {
                 return (false, "El caso no existe o no está asignado a este analista.");
-            }
 
             if (caso.Estado != EstadoCaso.EnVerificacion)
-            {
                 return (false, "El caso no se encuentra en estado EnVerificacion.");
-            }
 
             var trabajo = await _context.TrabajosCaso
                 .Where(t => t.CasoId == casoId)
@@ -626,13 +709,30 @@ namespace SistemaMuniAtiende.Services
                 .FirstOrDefaultAsync();
 
             if (trabajo == null)
-            {
                 return (false, "El caso no tiene un trabajo registrado para verificar.");
-            }
 
             caso.Estado = EstadoCaso.Solucionada;
 
             await _context.SaveChangesAsync();
+
+            var vecinoResuelto = await _userManager.FindByIdAsync(caso.VecinoId);
+            if (vecinoResuelto?.Email != null)
+            {
+                try
+                {
+                    await EnviarCorreoCasoAsync(
+                        vecinoResuelto.Email,
+                        vecinoResuelto.Nombre,
+                        $"Tu caso {caso.Codigo} ha sido resuelto correctamente.",
+                        "Puedes revisar el detalle completo desde \"Mis casos\" en tu Portal Municipal. Gracias por ayudarnos a mejorar los servicios municipales.",
+                        null
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"No se pudo enviar el correo de caso resuelto: {ex.Message}");
+                }
+            }
 
             return (true, "El trabajo fue verificado correctamente y el caso quedó solucionado.");
         }
@@ -640,14 +740,10 @@ namespace SistemaMuniAtiende.Services
         public async Task<(bool Exito, string Mensaje)> SolicitarCorreccionAsync(int casoId, string analistaId, SolicitarCorreccionRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Correccion))
-            {
                 return (false, "Debe indicar qué debe corregir el operario.");
-            }
 
             if (request.Correccion.Length > 2000)
-            {
                 return (false, "La descripción de la corrección no puede superar los 2000 caracteres.");
-            }
 
             var caso = await _context.Casos
                 .FirstOrDefaultAsync(c =>
@@ -655,14 +751,10 @@ namespace SistemaMuniAtiende.Services
                     c.AnalistaId == analistaId);
 
             if (caso == null)
-            {
                 return (false, "El caso no existe o no está asignado a este analista.");
-            }
 
             if (caso.Estado != EstadoCaso.EnVerificacion)
-            {
                 return (false, "El caso no se encuentra en estado EnVerificacion.");
-            }
 
             var trabajo = await _context.TrabajosCaso
                 .Where(t => t.CasoId == casoId)
@@ -670,17 +762,12 @@ namespace SistemaMuniAtiende.Services
                 .FirstOrDefaultAsync();
 
             if (trabajo == null)
-            {
                 return (false, "El caso no tiene un trabajo registrado para solicitar corrección.");
-            }
 
             var instruccion = await _context.InstruccionesTrabajo.FirstOrDefaultAsync(i => i.CasoId == casoId);
 
             if (instruccion == null)
-            {
                 return (false, "El caso no tiene una instrucción de trabajo asignada.");
-            }
-
 
             var solicitud = new SolicitudCorreccionTrabajo
             {
@@ -785,7 +872,6 @@ namespace SistemaMuniAtiende.Services
             return limpio.Length > 255 ? limpio.Substring(0, 255) : limpio;
         }
 
-
         public async Task<List<CasoVecinoResponse>> ObtenerCasosDelVecinoAsync(string vecinoId)
         {
             return await _context.Casos
@@ -803,57 +889,5 @@ namespace SistemaMuniAtiende.Services
                 ))
                 .ToListAsync();
         }
-
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

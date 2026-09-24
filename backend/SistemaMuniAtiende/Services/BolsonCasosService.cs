@@ -9,11 +9,13 @@ namespace SistemaMuniAtiende.Services
     {
         private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly PlantillaCorreoService _plantillaCorreo;
 
-        public BolsonCasosService(AppDbContext context, UserManager<ApplicationUser> userManager)
+        public BolsonCasosService(AppDbContext context, UserManager<ApplicationUser> userManager, PlantillaCorreoService plantillaCorreo)
         {
             _context = context;
             _userManager = userManager;
+            _plantillaCorreo = plantillaCorreo;
         }
 
         public async Task<(bool asignado, string mensaje)> AsignarCasoAsync(Caso caso)
@@ -86,6 +88,25 @@ namespace SistemaMuniAtiende.Services
             caso.Estado = EstadoCaso.Asignada;
 
             await _context.SaveChangesAsync();
+
+            if (analistaSeleccionado.Email != null)
+            {
+                try
+                {
+                    await _plantillaCorreo.EnviarCorreoCasoAsync(
+                        analistaSeleccionado.Email,
+                        analistaSeleccionado.Nombre,
+                        $"Nuevo caso asignado - {caso.Codigo} - Sistema QRDS",
+                        "Se te ha asignado un nuevo caso para revisión.",
+                        "Ingresa al Portal Municipal para revisar el caso y darle seguimiento.",
+                        ("Código del caso", caso.Codigo)
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"No se pudo enviar el correo de asignación al analista: {ex.Message}");
+                }
+            }
 
             return (
                 true,

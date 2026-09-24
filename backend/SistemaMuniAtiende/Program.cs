@@ -15,7 +15,7 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
            .AddInterceptors(sp.GetRequiredService<BitacoraInterceptor>()));
 builder.Services.AddSingleton(new BlobServiceClient(builder.Configuration["Azure:StorageConnectionString"]));
 builder.Services.AddScoped<BlobStorageService>();
-
+builder.Services.AddScoped<PlantillaCorreoService>();
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     options.Password.RequiredLength = 8;
