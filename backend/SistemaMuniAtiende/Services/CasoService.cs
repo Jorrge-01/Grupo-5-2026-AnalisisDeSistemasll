@@ -200,7 +200,7 @@ namespace SistemaMuniAtiende.Services
                 .ToListAsync();
         }
 
-        public async Task<CasoCreadoResponse?> ObtenerPorIdAsync(int id, string vecinoId)
+        public async Task<CasoVecinoDetalleResponse?> ObtenerPorIdAsync(int id, string vecinoId)
         {
             var caso = await _context.Casos
                 .Include(c => c.Area)
@@ -217,10 +217,17 @@ namespace SistemaMuniAtiende.Services
                 .Select(a => new ArchivoResponse(a.Id, a.NombreArchivo, a.RutaArchivo, a.TipoContenido))
                 .ToListAsync();
 
-            return new CasoCreadoResponse(
+            var solicitudInformacion = await _context.SolicitudesInformacionCaso
+                .Where(s =>
+                    s.CasoId == caso.Id &&
+                    s.Estado == EstadoSolicitudInformacion.Pendiente)
+                .OrderByDescending(s => s.FechaSolicitud)
+                .Select(s => s.Mensaje)
+                .FirstOrDefaultAsync();
+
+            return new CasoVecinoDetalleResponse(
                 caso.Id,
                 caso.Codigo,
-                "Queja",
                 caso.Area?.Nombre ?? "",
                 caso.Aldea?.Nombre ?? "",
                 caso.Direccion,
@@ -228,7 +235,8 @@ namespace SistemaMuniAtiende.Services
                 caso.Descripcion,
                 caso.FechaRegistro,
                 caso.Estado.ToString(),
-                archivos
+                archivos,
+                solicitudInformacion
             );
         }
         public async Task<List<CasoAnalistaResponse>> ObtenerCasosDelAnalistaAsync(string analistaId)

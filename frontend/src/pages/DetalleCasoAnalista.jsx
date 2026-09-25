@@ -80,6 +80,8 @@ export default function DetalleCasoAnalista() {
   const [instruccion, setInstruccion] = useState('')
   const [correccion, setCorreccion] = useState('')
   const [mostrarCorreccion, setMostrarCorreccion] = useState(false)
+  const [solicitudInformacion, setSolicitudInformacion] = useState('')
+  const [mostrarSolicitudInformacion, setMostrarSolicitudInformacion] = useState(false)
 
   async function cargarDetalle() {
     try {
@@ -128,6 +130,46 @@ export default function DetalleCasoAnalista() {
       setProcesando(false)
     }
   }
+
+  async function solicitarInformacion() {
+  if (!solicitudInformacion.trim()) {
+    setError('Debe indicar qué información necesita del vecino.')
+    return
+  }
+
+  try {
+    setProcesando(true)
+    setError('')
+    setMensaje('')
+
+    const token = localStorage.getItem('token')
+
+    const data = await apiFetch(
+      `/api/Casos/${id}/solicitar-informacion`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          mensaje: solicitudInformacion.trim(),
+        }),
+      }
+    )
+
+    setMensaje(data.mensaje)
+    setSolicitudInformacion('')
+    setMostrarSolicitudInformacion(false)
+
+    await cargarDetalle()
+  } catch (err) {
+    setError(
+      err.message || 'No se pudo solicitar información al vecino.'
+    )
+  } finally {
+    setProcesando(false)
+  }
+}
 
   async function crearInstruccion() {
     if (!instruccion.trim()) {
@@ -594,33 +636,117 @@ export default function DetalleCasoAnalista() {
             )}
 
             {/* ASIGNADA */}
-            {caso.estado === 'Asignada' && (
-              <div className="flex flex-col sm:flex-row gap-3">
+{caso.estado === 'Asignada' && (
+  <div>
+    <div className="flex flex-col sm:flex-row gap-3">
+      <button
+        type="button"
+        onClick={validarCaso}
+        disabled={procesando}
+        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-[var(--color-verde-institucional)] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+      >
+        <CheckCircle2 className="h-4 w-4" />
 
-                <button
-                  type="button"
-                  onClick={validarCaso}
-                  disabled={procesando}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-[var(--color-verde-institucional)] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
+        {procesando
+          ? 'Validando...'
+          : 'Validar caso'}
+      </button>
 
-                  {procesando
-                    ? 'Validando...'
-                    : 'Validar caso'}
-                </button>
+      <button
+        type="button"
+        onClick={() => {
+          setMostrarSolicitudInformacion(true)
+          setError('')
+          setMensaje('')
+        }}
+        disabled={procesando}
+        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md border border-[var(--color-verde-institucional)]/25 text-[var(--color-verde-institucional)] text-sm font-medium hover:bg-[var(--color-verde-institucional)]/5 transition-colors disabled:opacity-50"
+      >
+        <MessageSquare className="h-4 w-4" />
 
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md border border-[var(--color-verde-institucional)]/25 text-[var(--color-verde-institucional)] text-sm font-medium hover:bg-[var(--color-verde-institucional)]/5 transition-colors"
-                >
-                  <MessageSquare className="h-4 w-4" />
+        Solicitar información
+      </button>
+    </div>
 
-                  Solicitar información
-                </button>
+    {mostrarSolicitudInformacion && (
+      <div className="mt-5 rounded-lg border border-orange-200 bg-orange-50 p-5">
+        <div className="flex items-start gap-3 mb-5">
+          <MessageSquare className="h-5 w-5 mt-0.5 text-orange-700 flex-shrink-0" />
 
-              </div>
-            )}
+          <div>
+            <p className="font-medium text-orange-800">
+              Solicitar información al vecino
+            </p>
+
+            <p className="text-sm mt-1 text-orange-700">
+              Indique qué información adicional necesita para poder validar el caso.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <label
+            htmlFor="solicitudInformacion"
+            className="block text-sm font-medium text-[var(--color-tinta)] mb-2"
+          >
+            Información solicitada
+          </label>
+
+          <textarea
+            id="solicitudInformacion"
+            value={solicitudInformacion}
+            onChange={(e) => setSolicitudInformacion(e.target.value)}
+            rows={5}
+            maxLength={2000}
+            disabled={procesando}
+            placeholder="Escriba aquí la información que necesita del vecino..."
+            className="w-full rounded-lg border border-orange-300 bg-white px-4 py-3 text-sm text-[var(--color-tinta)] outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 disabled:bg-gray-100"
+          />
+
+          <div className="mt-2 flex items-center justify-between gap-4">
+            <span className="text-xs text-[var(--color-tinta)]/50">
+              {solicitudInformacion.length}/2000 caracteres
+            </span>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setMostrarSolicitudInformacion(false)
+                  setSolicitudInformacion('')
+                  setError('')
+                }}
+                disabled={procesando}
+                className="inline-flex items-center justify-center px-5 py-2.5 rounded-md border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={solicitarInformacion}
+                disabled={procesando || !solicitudInformacion.trim()}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-orange-600 text-white text-sm font-medium hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {procesando ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <MessageSquare className="h-4 w-4" />
+                    Solicitar información
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)}
 
             {/* EN VALIDACIÓN */}
             {caso.estado === 'EnValidacion' && (

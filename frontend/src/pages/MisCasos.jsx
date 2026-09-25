@@ -47,6 +47,10 @@ export default function MisCasos() {
   const [detalle, setDetalle] = useState(null)
   const [cargandoDetalle, setCargandoDetalle] = useState(false)
 
+  const [respuestaInformacion, setRespuestaInformacion] = useState('')
+  const [enviandoRespuesta, setEnviandoRespuesta] = useState(false)
+  const [mensajeRespuesta, setMensajeRespuesta] = useState('')
+
   useEffect(() => {
     async function cargar() {
       setCargando(true)
@@ -70,6 +74,9 @@ export default function MisCasos() {
     setCasoSeleccionadoId(id)
     setCargandoDetalle(true)
     setDetalle(null)
+    setRespuestaInformacion('')
+    setMensajeRespuesta('')
+
     try {
       const token = localStorage.getItem('token')
       const data = await apiFetch(`/api/Casos/${id}`, {
@@ -82,6 +89,55 @@ export default function MisCasos() {
       setCargandoDetalle(false)
     }
   }
+
+  async function responderInformacion() {
+  if (!respuestaInformacion.trim()) {
+    setMensajeRespuesta('Debes escribir una respuesta.')
+    return
+  }
+
+  setEnviandoRespuesta(true)
+  setMensajeRespuesta('')
+
+  try {
+    const token = localStorage.getItem('token')
+
+    const data = await apiFetch(
+      `/api/Casos/${detalle.id}/responder-informacion`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          respuesta: respuestaInformacion.trim(),
+        }),
+      }
+    )
+
+    setMensajeRespuesta(data.mensaje || 'La información fue enviada correctamente.')
+    setRespuestaInformacion('')
+
+   
+    await abrirDetalle(detalle.id)
+
+    
+    const casosActualizados = await apiFetch('/api/Casos/mis-casos-vecino', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    setCasos(casosActualizados)
+
+  } catch (err) {
+    setMensajeRespuesta(
+      err.message || 'No se pudo enviar la respuesta.'
+    )
+  } finally {
+    setEnviandoRespuesta(false)
+  }
+}
 
   function cerrarDetalle() {
     setCasoSeleccionadoId(null)
@@ -250,6 +306,59 @@ export default function MisCasos() {
                       <p className="text-sm text-[var(--color-tinta)] whitespace-pre-wrap">{detalle.descripcion}</p>
                     </div>
                   </div>
+
+                  {detalle.estado === 'PendienteInformacion' && detalle.solicitudInformacion && (
+                    <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 space-y-4">
+
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-orange-700 font-semibold mb-1">
+                          Información solicitada
+                        </p>
+
+                        <p className="text-sm text-orange-900 whitespace-pre-wrap">
+                          {detalle.solicitudInformacion}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs uppercase tracking-wide text-orange-700 font-semibold mb-1">
+                          Tu respuesta
+                        </label>
+
+                        <textarea
+                          value={respuestaInformacion}
+                          onChange={(e) => setRespuestaInformacion(e.target.value)}
+                          maxLength={2000}
+                          rows={4}
+                          placeholder="Escribe aquí la información solicitada por el analista..."
+                          className="w-full rounded-md border border-orange-200 bg-white px-3 py-2 text-sm text-[var(--color-tinta)] outline-none focus:ring-2 focus:ring-orange-300 resize-none"
+                          disabled={enviandoRespuesta}
+                        />
+
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-xs text-[var(--color-tinta)]/50">
+                            {respuestaInformacion.length}/2000
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={responderInformacion}
+                            disabled={enviandoRespuesta || !respuestaInformacion.trim()}
+                            className="px-4 py-2 rounded-md bg-[var(--color-ocre)] text-white text-sm font-semibold hover:bg-[var(--color-ocre-claro)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {enviandoRespuesta ? 'Enviando...' : 'Enviar información'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {mensajeRespuesta && (
+                        <p className="text-sm text-[var(--color-verde-institucional)] bg-white/60 border border-green-200 rounded-md px-3 py-2">
+                          {mensajeRespuesta}
+                        </p>
+                      )}
+
+                    </div>
+                  )}
 
                   {detalle.archivos && detalle.archivos.length > 0 && (
                     <div>

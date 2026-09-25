@@ -80,6 +80,20 @@
     string Estado
 );
 
+    public record CasoVecinoDetalleResponse(
+    int Id,
+    string Codigo,
+    string Area,
+    string Aldea,
+    string Direccion,
+    string TelefonoContacto,
+    string Descripcion,
+    DateTime FechaRegistro,
+    string Estado,
+    List<ArchivoResponse> Archivos,
+    string? SolicitudInformacion
+);
+
 
 
     public record CasoOperarioDetalleResponse(
